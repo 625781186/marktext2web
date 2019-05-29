@@ -1,6 +1,8 @@
 # marktext2web
 
-> 
+> [Marktext](https://github.com/marktext/marktext)  is a great desktop markdown editor, and I wanted to try it out on the web.
+>
+> I am a JS novice, hope more people to improve the project together.
 
 ## Build Setup
 
@@ -24,4 +26,7 @@ npm run unit
 npm test
 ```
 
-For a detailed explanation on how things work, check out the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).
+# Other - Current: Marktext v0.01
+
+I try `npm run build:web`success version `v0.0.1` and `v0.0.2`of [Marktext](https://github.com/marktext/marktext) , Just a few small changes.
+
