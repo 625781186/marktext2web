@@ -9,8 +9,10 @@ import {
   getFirstSelectableLeafNode,
   isElementAtBeginningOfBlock,
   findPreviousSibling,
+  findNearestParagraph,
   getClosestBlockContainer,
-  getCursorPositionWithinMarkedText
+  getCursorPositionWithinMarkedText,
+  compareParagraphsOrder
 } from './utils/domManipulate'
 
 const filterOnlyParentElements = node => {
@@ -667,6 +669,8 @@ class Selection {
    *  @param {boolean} moveCursorToStart  A boolean representing whether or not to set the caret to the beginning of the prior selection.
    */
   clearSelection (moveCursorToStart) {
+    const { rangeCount } = this.doc.getSelection()
+    if (!rangeCount) return
     if (moveCursorToStart) {
       this.doc.getSelection().collapseToStart()
     } else {
@@ -707,6 +711,138 @@ class Selection {
     const startNode = (node && node.nodeType === 3 ? node.parentNode : node)
 
     return startNode
+  }
+
+  setCursorRange (cursorRange) {
+    const { start, end } = cursorRange
+    const startParagraph = document.querySelector(`#${start.key}`)
+    const endParagraph = document.querySelector(`#${end.key}`)
+
+    const getNodeAndOffset = (node, offset) => {
+      if (node.nodeType === 3) {
+        return {
+          node,
+          offset
+        }
+      }
+      const childNodes = node.childNodes
+      const len = childNodes.length
+      let i
+      let count = 0
+      for (i = 0; i < len; i++) {
+        const child = childNodes[i]
+        if (count + child.textContent.length >= offset) {
+          return getNodeAndOffset(child, offset - count)
+        } else {
+          count += child.textContent.length
+        }
+      }
+      return { node, offset }
+    }
+
+    let { node: startNode, offset: startOffset } = getNodeAndOffset(startParagraph, start.offset)
+    let { node: endNode, offset: endOffset } = getNodeAndOffset(endParagraph, end.offset)
+    startOffset = Math.min(startOffset, startNode.textContent.length)
+    endOffset = Math.min(endOffset, endNode.textContent.length)
+
+    this.select(startNode, startOffset, endNode, endOffset)
+  }
+
+  getCursorRange () {
+    let { anchorNode, anchorOffset, focusNode, focusOffset } = this.doc.getSelection()
+
+    // when the first paragraph is task list, press ctrl + a, then press backspace will cause bug
+    // use code bellow to fix the bug
+    const findFirstTextNode = anchor => {
+      if (anchor.nodeType === 3) return anchor
+      const children = anchor.childNodes
+      for (const node of children) {
+        if (node.nodeName !== 'INPUT') {
+          return findFirstTextNode(node)
+        }
+      }
+    }
+    if (anchorNode.nodeName === 'LI') {
+      anchorNode = findFirstTextNode(anchorNode)
+    }
+
+    let startParagraph = findNearestParagraph(anchorNode)
+    let endParagraph = findNearestParagraph(focusNode)
+
+    const getOffsetOfParagraph = (node, paragraph) => {
+      let offset = 0
+      let preSibling = node
+
+      if (node === paragraph) return offset
+
+      do {
+        preSibling = preSibling.previousSibling
+        if (preSibling) {
+          offset += preSibling.textContent.length
+        }
+      } while (preSibling)
+      return (node === paragraph || node.parentNode === paragraph)
+        ? offset
+        : offset + getOffsetOfParagraph(node.parentNode, paragraph)
+    }
+
+    if (startParagraph === endParagraph) {
+      const key = startParagraph.id
+      const offset1 = getOffsetOfParagraph(anchorNode, startParagraph) + anchorOffset
+      const offset2 = getOffsetOfParagraph(focusNode, endParagraph) + focusOffset
+      return {
+        start: { key, offset: Math.min(offset1, offset2) },
+        end: { key, offset: Math.max(offset1, offset2) }
+      }
+    } else {
+      const order = compareParagraphsOrder(startParagraph, endParagraph)
+
+      const rawCursor = {
+        start: {
+          key: startParagraph.id,
+          offset: getOffsetOfParagraph(anchorNode, startParagraph) + anchorOffset
+        },
+        end: {
+          key: endParagraph.id,
+          offset: getOffsetOfParagraph(focusNode, endParagraph) + focusOffset
+        }
+      }
+      if (order) {
+        return rawCursor
+      } else {
+        return { start: rawCursor.end, end: rawCursor.start }
+      }
+    }
+  }
+
+  getCursorCoords () {
+    const sel = this.doc.getSelection()
+    let range
+    let x = 0
+    let y = 0
+
+    if (sel.rangeCount) {
+      range = sel.getRangeAt(0).cloneRange()
+      if (range.getClientRects) {
+        range.collapse(true)
+        const rects = range.getClientRects()
+
+        if (rects.length) {
+          const { left, top, x: rectX, y: rectY } = rects[0]
+          x = rectX || left
+          y = rectY || top
+        }
+      }
+    }
+
+    return { x, y }
+  }
+
+  getSelectionEnd () {
+    const node = this.doc.getSelection().focusNode
+    const endNode = (node && node.nodeType === 3 ? node.parentNode : node)
+
+    return endNode
   }
 }
 

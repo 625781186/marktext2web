@@ -1,16 +1,25 @@
 import { getUniqueId } from '../utils'
+import selection from '../selection'
 import StateRender from '../parser/StateRender'
 import enterCtrl from './enterCtrl'
 import updateCtrl from './updateCtrl'
 import garbageCtrl from './garbageCtrl'
 import backspaceCtrl from './backspaceCtrl'
 import codeBlockCtrl from './codeBlockCtrl'
+import tableBlockCtrl from './tableBlockCtrl'
 import History from './history'
 import historyCtrl from './historyCtrl'
 import arrowCtrl from './arrowCtrl'
+import pasteCtrl from './pasteCtrl'
+import copyCutCtrl from './copyCutCtrl'
+import paragraphCtrl from './paragraphCtrl'
+import tabCtrl from './tabCtrl'
+import formatCtrl from './formatCtrl'
+import searchCtrl from './searchCtrl'
 import importMarkdown from '../utils/importMarkdown'
 
-const ctrls = [
+const prototypes = [
+  tabCtrl,
   enterCtrl,
   updateCtrl,
   garbageCtrl,
@@ -18,6 +27,12 @@ const ctrls = [
   codeBlockCtrl,
   historyCtrl,
   arrowCtrl,
+  pasteCtrl,
+  copyCutCtrl,
+  tableBlockCtrl,
+  paragraphCtrl,
+  formatCtrl,
+  searchCtrl,
   importMarkdown
 ]
 
@@ -33,19 +48,37 @@ const convertBlocksToArray = blocks => {
   return result
 }
 
+// use to cache the keys which you dont want to remove.
+const exemption = new Set()
+
 class ContentState {
-  constructor () {
+  constructor (eventCenter, floatBox, tablePicker) {
+    this.eventCenter = eventCenter
+    this.floatBox = floatBox
+    this.tablePicker = tablePicker
     this.keys = new Set()
     this.blocks = [ this.createBlock() ]
     this.stateRender = new StateRender()
     this.codeBlocks = new Map()
     this.history = new History(this)
+    this.init()
+  }
+
+  init () {
     const lastBlock = this.getLastBlock()
+    this.searchMatches = {
+      value: '',
+      matches: [],
+      index: -1
+    }
     this.cursor = {
-      key: lastBlock.key,
-      range: {
-        start: lastBlock.text.length,
-        end: lastBlock.text.length
+      start: {
+        key: lastBlock.key,
+        offset: lastBlock.text.length
+      },
+      end: {
+        key: lastBlock.key,
+        offset: lastBlock.text.length
       }
     }
     this.history.push({
@@ -55,11 +88,20 @@ class ContentState {
     })
   }
 
-  render () {
-    const { blocks, cursor, codeBlocks } = this
-    const activeBlockKey = this.getActiveBlockKey()
-    this.stateRender.render(blocks, cursor, activeBlockKey, codeBlocks)
-    this.pre2CodeMirror()
+  setCursor () {
+    const { cursor } = this
+    selection.setCursorRange(cursor)
+  }
+
+  render (isRenderCursor = true) {
+    const { blocks, cursor, searchMatches: { matches, index } } = this
+    const activeBlocks = this.getActiveBlocks()
+    matches.forEach((m, i) => {
+      m.active = i === index
+    })
+    this.stateRender.render(blocks, cursor, activeBlocks, matches)
+    if (isRenderCursor) this.setCursor()
+    this.pre2CodeMirror(isRenderCursor)
   }
 
   createBlock (type = 'p', text = '') {
@@ -105,6 +147,17 @@ class ContentState {
     }
     return null
   }
+  // return block and its parents
+  getParents (block) {
+    const result = []
+    result.push(block)
+    let parent = this.getParent(block)
+    while (parent) {
+      result.push(parent)
+      parent = this.getParent(parent)
+    }
+    return result
+  }
 
   getPreSibling (block) {
     return block.preSibling ? this.getBlock(block.preSibling) : null
@@ -123,7 +176,128 @@ class ContentState {
     }
   }
 
+  /**
+   * if target is descendant of parent return true, else return false
+   * @param  {[type]}  parent [description]
+   * @param  {[type]}  target [description]
+   * @return {Boolean}        [description]
+   */
+  isInclude (parent, target) {
+    const children = parent.children
+    if (children.length === 0) {
+      return false
+    } else {
+      if (children.some(child => child.key === target.key)) {
+        return true
+      } else {
+        return children.some(child => this.isInclude(child, target))
+      }
+    }
+  }
+
+  removeTextOrBlock (block) {
+    const checkerIn = block => {
+      if (exemption.has(block.key)) {
+        return true
+      } else {
+        const parent = this.getBlock(block.parent)
+        return parent ? checkerIn(parent) : false
+      }
+    }
+
+    const checkerOut = block => {
+      const children = block.children
+      if (children.length) {
+        if (children.some(child => exemption.has(child.key))) {
+          return true
+        } else {
+          return children.some(child => checkerOut(child))
+        }
+      } else {
+        return false
+      }
+    }
+
+    if (checkerIn(block) || checkerOut(block)) {
+      block.text = ''
+      const { children } = block
+      if (children.length) {
+        children.forEach(child => this.removeTextOrBlock(child))
+      }
+    } else {
+      this.removeBlock(block)
+    }
+  }
+  // help func in removeBlocks
+  findFigure (block) {
+    if (block.type === 'figure') {
+      return block.key
+    } else {
+      const parent = this.getBlock(block.parent)
+      return this.findFigure(parent)
+    }
+  }
+
+  /**
+   * remove blocks between before and after, and includes after block.
+   */
+  removeBlocks (before, after, isRemoveAfter = true, isRecursion = false) {
+    if (!isRecursion) {
+      if (/td|th/.test(before.type)) {
+        exemption.add(this.findFigure(before))
+      }
+      if (/td|th/.test(after.type)) {
+        exemption.add(this.findFigure(after))
+      }
+    }
+    let nextSibling = this.getBlock(before.nextSibling)
+    let beforeEnd = false
+    while (nextSibling) {
+      if (nextSibling.key === after.key || this.isInclude(nextSibling, after)) {
+        beforeEnd = true
+        break
+      }
+      this.removeTextOrBlock(nextSibling)
+      nextSibling = this.getBlock(nextSibling.nextSibling)
+    }
+    if (!beforeEnd) {
+      const parent = this.getParent(before)
+      if (parent) {
+        this.removeBlocks(parent, after, false, true)
+      }
+    }
+    let preSibling = this.getBlock(after.preSibling)
+    let afterEnd = false
+    while (preSibling) {
+      if (preSibling.key === before.key || this.isInclude(preSibling, before)) {
+        afterEnd = true
+        break
+      }
+      this.removeTextOrBlock(preSibling)
+      preSibling = this.getBlock(preSibling.preSibling)
+    }
+    if (!afterEnd) {
+      const parent = this.getParent(after)
+      if (parent) {
+        const isOnlyChild = this.isOnlyChild(after)
+        this.removeBlocks(before, parent, isOnlyChild, true)
+      }
+    }
+    if (isRemoveAfter) {
+      this.removeTextOrBlock(after)
+    }
+    if (!isRecursion) {
+      exemption.clear()
+    }
+  }
+
   removeBlock (block) {
+    if (block.type === 'pre') {
+      const codeBlockId = block.key
+      if (this.codeBlocks.has(codeBlockId)) {
+        this.codeBlocks.delete(codeBlockId)
+      }
+    }
     const remove = (blocks, block) => {
       const len = blocks.length
       let i
@@ -150,13 +324,15 @@ class ContentState {
     remove(this.blocks, block)
   }
 
-  getActiveBlockKey () {
-    let block = this.getBlock(this.cursor.key)
-    if (!block) return null
-    while (block.parent) {
+  getActiveBlocks () {
+    let result = []
+    let block = this.getBlock(this.cursor.start.key)
+    if (block) result.push(block)
+    while (block && block.parent) {
       block = this.getBlock(block.parent)
+      result.push(block)
     }
-    return block.key
+    return result
   }
 
   getCursorBlock () {
@@ -217,7 +393,10 @@ class ContentState {
     if (lastChild) {
       lastChild.nextSibling = block.key
       block.preSibling = lastChild.key
+    } else {
+      block.preSibling = null
     }
+    block.nextSibling = null
   }
 
   replaceBlock (newBlock, oldBlock) {
@@ -253,12 +432,38 @@ class ContentState {
     return arrayBlocks[len - 1]
   }
 
+  wordCount () {
+    const blocks = this.getBlocks()
+    let paragraph = blocks.length
+    let word = 0
+    let character = 0
+    let all = 0
+
+    const travel = block => {
+      if (block.text) {
+        const text = block.text
+        const removedChinese = text.replace(/[\u4e00-\u9fa5]/g, '')
+        const tokens = removedChinese.split(/[\s\n]+/).filter(t => t)
+        const chineseWordLength = text.length - removedChinese.length
+        word += chineseWordLength + tokens.length
+        character += tokens.reduce((acc, t) => acc + t.length, 0) + chineseWordLength
+        all += text.length
+      }
+      if (block.children.length) {
+        block.children.forEach(child => travel(child))
+      }
+    }
+
+    blocks.forEach(block => travel(block))
+    return { word, paragraph, character, all }
+  }
+
   clear () {
     this.keys.clear()
     this.codeBlocks.clear()
   }
 }
 
-ctrls.forEach(ctrl => ctrl(ContentState))
+prototypes.forEach(ctrl => ctrl(ContentState))
 
 export default ContentState

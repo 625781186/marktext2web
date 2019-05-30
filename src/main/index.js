@@ -1,26 +1,45 @@
 'use strict'
 
 import { app, Menu } from 'electron'
-import configureMenu from './configureMenu'
+import configureMenu, { dockMenu } from './menus'
 import createWindow, { windows } from './createWindow'
+// import { autoUpdater } from "electron-updater"
 
-/**
- * Set `__static` path to static files in production
- * https://simulatedgreg.gitbooks.io/electron-vue/content/en/using-static-assets.html
- */
-if (process.env.NODE_ENV !== 'development') {
-  global.__static = require('path').join(__dirname, '/static').replace(/\\/g, '\\\\')
-}
+let openFilesCache = []
 
 const onReady = () => {
-  createWindow()
+  if (process.platform === 'win32' && process.argv.length >= 2) {
+    openFilesCache = [process.argv[1]]
+  }
+  if (openFilesCache.length) {
+    openFilesCache.forEach(path => createWindow(path))
+    openFilesCache.length = 0 // empty the open file path cache
+  } else {
+    createWindow()
+  }
   const menu = Menu.buildFromTemplate(configureMenu({ app }))
   Menu.setApplicationMenu(menu)
+  if (process.platform === 'darwin') {
+    // app.dock is only for macosx
+    app.dock.setMenu(dockMenu)
+  }
 }
+
+const openFile = (event, path) => {
+  event.preventDefault()
+  if (app.isReady()) {
+    createWindow(path)
+  } else {
+    openFilesCache.push(path)
+  }
+}
+
+app.on('open-file', openFile)
 
 app.on('ready', onReady)
 
 app.on('window-all-closed', () => {
+  app.removeListener('open-file', openFile)
   if (process.platform !== 'darwin') {
     app.quit()
   }

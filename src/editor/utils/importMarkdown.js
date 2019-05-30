@@ -1,18 +1,43 @@
 /**
  * translate markdown format to content state used by editor
  */
-import Markdownit from 'markdown-it'
+
 import parse5 from 'parse5'
-// To be disabled rules when parse markdown, Becase content state don't need to parse inline rules
-import { INLINE_RULES } from '../config'
+import TurndownService from 'turndown'
+import marked from '../parser/marked'
+import ExportMarkdown from './exportMarkdown'
 
-const md = new Markdownit()
-md.disable(INLINE_RULES)
+// To be disabled rules when parse markdown, Because content state don't need to parse inline rules
+import { turndownConfig, CLASS_OR_ID, CURSOR_DNA } from '../config'
 
-const importRegistor = ContentState => {
-  ContentState.prototype.importMarkdown = function (text) {
-    this.keys = new Set()
-    this.codeBlocks = new Map()
+const turndownPluginGfm = require('turndown-plugin-gfm')
+
+// turn html to markdown
+const turndownService = new TurndownService(turndownConfig)
+const gfm = turndownPluginGfm.gfm
+// Use the gfm plugin
+turndownService.use(gfm)
+// because the strikethrough rule in gfm is single `~`, So need rewrite the strikethrough rule.
+turndownService.addRule('strikethrough', {
+  filter: ['del', 's', 'strike'],
+  replacement: function (content) {
+    return '~~' + content + '~~'
+  }
+})
+
+// remove `\` in emoji text when paste
+turndownService.addRule('normalEmoji', {
+  filter (node, options) {
+    return node.nodeName === 'SPAN' &&
+      node.classList.contains(CLASS_OR_ID['AG_EMOJI_MARKED_TEXT'])
+  },
+  replacement (content, node, options) {
+    return content.replace(/\\/g, '')
+  }
+})
+
+const importRegister = ContentState => {
+  ContentState.prototype.getStateFragment = function (markdown) {
     // mock a root block...
     const rootState = {
       key: null,
@@ -24,7 +49,7 @@ const importRegistor = ContentState => {
       children: []
     }
 
-    const htmlText = md.render(text)
+    const htmlText = marked(markdown, { disableInline: true })
     const domAst = parse5.parseFragment(htmlText)
 
     const childNodes = domAst.childNodes
@@ -33,11 +58,22 @@ const importRegistor = ContentState => {
       let lang = ''
       if (node.nodeName === 'code') {
         const classAttr = node.attrs.filter(attr => attr.name === 'class')[0]
-        if (classAttr && /^language/.test(classAttr.value)) {
+        if (classAttr && /^lang-/.test(classAttr.value)) {
           lang = classAttr.value.split('-')[1]
         }
       }
       return lang
+    }
+
+    const getRowColumnCount = childNodes => {
+      const THEAD_ROW_COUNT = 1
+      const tbodyNode = childNodes.find(child => child.nodeName === 'tbody')
+      const row = tbodyNode.childNodes.filter(child => child.nodeName === 'tr').length + THEAD_ROW_COUNT - 1
+      const column = tbodyNode.childNodes
+        .find(child => child.nodeName === 'tr').childNodes
+        .filter(td => td.nodeName === 'td')
+        .length - 1
+      return { row, column } // zero base
     }
 
     const travel = (parent, childNodes) => {
@@ -48,7 +84,10 @@ const importRegistor = ContentState => {
         const child = childNodes[i]
         let block
         let value
+
         switch (child.nodeName) {
+          case 'th':
+          case 'td':
           case 'p':
           case 'h1':
           case 'h2':
@@ -56,33 +95,82 @@ const importRegistor = ContentState => {
           case 'h4':
           case 'h5':
           case 'h6':
-            const textValue = child.childNodes[0].value
+            const textValue = child.childNodes.length ? child.childNodes[0].value : ''
             const match = /\d/.exec(child.nodeName)
             value = match ? '#'.repeat(+match[0]) + textValue : textValue
             block = this.createBlock(child.nodeName, value)
+            // handle `th` and `td`
+            if (child.nodeName === 'th' || child.nodeName === 'td') {
+              const column = childNodes.filter(child => /th|td/.test(child.nodeName)).indexOf(child)
+              let align = ''
+              const styleAttr = child.attrs.filter(attr => attr.name === 'style')
+              if (styleAttr.length) {
+                const styleValue = styleAttr[0].value
+                if (/text-align/.test(styleValue)) {
+                  align = styleValue.split(':')[1]
+                }
+              }
+              Object.assign(block, { column, align })
+            }
             this.appendChild(parent, block)
             break
 
-          case 'li':
-            block = this.createBlock('li')
+          case 'table':
+            const toolBar = this.createToolBar()
+            const table = this.createBlock('table')
+            Object.assign(table, getRowColumnCount(child.childNodes)) // set row and column
+            block = this.createBlock('figure')
+            this.appendChild(block, toolBar)
+            this.appendChild(block, table)
             this.appendChild(parent, block)
-            if (child.childNodes.length === 1) {
-              value = child.childNodes[0].value
-              const pBlock = this.createBlock('p', value)
-              this.appendChild(block, pBlock)
-            } else {
-              travel(block, child.childNodes)
+            travel(table, child.childNodes)
+            break
+
+          case 'tr':
+          case 'tbody':
+          case 'thead':
+            block = this.createBlock(child.nodeName)
+            this.appendChild(parent, block)
+            travel(block, child.childNodes)
+            break
+
+          case 'hr':
+            const initValue = '---'
+            block = this.createBlock(child.nodeName, initValue)
+            this.appendChild(parent, block)
+            break
+
+          case 'input':
+            const isTaskListItemCheckbox = child.attrs.some(attr => attr.name === 'class' && attr.value === 'task-list-item-checkbox')
+            const checked = child.attrs.some(attr => attr.name === 'checked' && attr.value === '')
+
+            if (isTaskListItemCheckbox) {
+              parent.listItemType = 'task' // double check
+              block = this.createBlock('input')
+              block.checked = checked
+              this.appendChild(parent, block)
             }
             break
 
+          case 'li':
+            const isTask = child.attrs.some(attr => attr.name === 'class' && attr.value === 'task-list-item')
+            block = this.createBlock('li')
+            block.listItemType = parent.nodeName === 'ul' ? (isTask ? 'task' : 'bullet') : 'order'
+            this.appendChild(parent, block)
+            travel(block, child.childNodes)
+            break
+
           case 'ul':
+            const isTaskList = child.attrs.some(attr => attr.name === 'class' && attr.value === 'task-list')
             block = this.createBlock('ul')
+            block.listType = isTaskList ? 'task' : 'bullet'
             travel(block, child.childNodes)
             this.appendChild(parent, block)
             break
 
           case 'ol':
             block = this.createBlock('ol')
+            block.listType = 'order'
             child.attrs.forEach(attr => {
               block[attr.name] = attr.value
             })
@@ -110,9 +198,20 @@ const importRegistor = ContentState => {
             block.lang = getLang(codeNode)
             this.appendChild(parent, block)
             break
+
+          case '#text':
+            const { parentNode } = child
+            value = child.value
+
+            if (parentNode.nodeName === 'li' && /\S/.test(value)) {
+              block = this.createBlock('p', value)
+              this.appendChild(parent, block)
+            }
+            break
+
           default:
             if (child.tagName) {
-              throw new Error(`unhandle node type ${child.tagName}`)
+              throw new Error(`unHandle node type ${child.tagName}`)
             }
             break
         }
@@ -120,17 +219,80 @@ const importRegistor = ContentState => {
     }
 
     travel(rootState, childNodes)
-    this.blocks = rootState.children
-    const lastBlock = this.getLastBlock()
-    this.cursor = {
-      key: lastBlock.key,
-      range: {
-        start: lastBlock.text.length,
-        end: lastBlock.text.length
+    return rootState.children
+  }
+  // transform `paste's text/html data` to content state blocks.
+  ContentState.prototype.html2State = function (html) {
+    const markdown = turndownService.turndown(html)
+    return this.getStateFragment(markdown)
+  }
+
+  ContentState.prototype.addCursorToMarkdown = function (markdown, cursor) {
+    const { ch, line } = cursor
+    const lines = markdown.split('\n')
+    const rawText = lines[line]
+    lines[line] = rawText.substring(0, ch) + CURSOR_DNA + rawText.substring(ch)
+    return lines.join('\n')
+  }
+
+  ContentState.prototype.getCodeMirrorCursor = function () {
+    const blocks = this.getBlocks()
+    const { start: { key, offset } } = this.cursor
+    const block = this.getBlock(key)
+    const { text } = block
+    block.text = text.substring(0, offset) + CURSOR_DNA + text.substring(offset)
+    const markdown = new ExportMarkdown(blocks).generate()
+    const cursor = markdown.split('\n').reduce((acc, line, index) => {
+      const ch = line.indexOf(CURSOR_DNA)
+      if (ch > -1) {
+        Object.assign(acc, { line: index, ch })
+      }
+      return acc
+    }, {
+      line: 0,
+      ch: 0
+    })
+    // remove CURSOR_DNA
+    block.text = text
+    return cursor
+  }
+
+  ContentState.prototype.importCursor = function (cursor) {
+    // set cursor
+    if (cursor) {
+      const blocks = this.getArrayBlocks()
+      for (const block of blocks) {
+        const { text, key } = block
+        if (text) {
+          const offset = block.text.indexOf(CURSOR_DNA)
+          if (offset > -1) {
+            // remove the CURSOR_DNA in the block text
+            block.text = text.substring(0, offset) + text.substring(offset + CURSOR_DNA.length)
+            this.cursor = {
+              start: { key, offset },
+              end: { key, offset }
+            }
+            break
+          }
+        }
+      }
+    } else {
+      const lastBlock = this.getLastBlock()
+      const key = lastBlock.key
+      const offset = lastBlock.text.length
+      this.cursor = {
+        start: { key, offset },
+        end: { key, offset }
       }
     }
-    this.render()
+  }
+
+  ContentState.prototype.importMarkdown = function (markdown) {
+    // empty the blocks and codeBlocks
+    this.keys = new Set()
+    this.codeBlocks = new Map()
+    this.blocks = this.getStateFragment(markdown)
   }
 }
 
-export default importRegistor
+export default importRegister

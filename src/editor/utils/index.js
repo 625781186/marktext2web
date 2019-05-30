@@ -20,6 +20,13 @@ export const getUniqueId = set => {
   return id
 }
 
+export const isMetaKey = event => {
+  const key = event.key
+  return key === 'Shift' || key === 'Control' || key === 'Alt' || key === 'Meta'
+}
+
+export const noop = () => {}
+
 export const getIdWithoutSet = () => {
   return `${getId()}-${+new Date()}`
 }
@@ -32,10 +39,29 @@ export const isLengthEven = (str = '') => {
   return len % 2 === 0
 }
 /**
- *  Are two arraies have intersection
+ *  Are two arrays have intersection
  */
 export const conflict = (arr1, arr2) => {
   return !(arr1[1] < arr2[0] || arr2[1] < arr1[0])
+}
+
+export const union = ({ start: tStart, end: tEnd }, { start: lStart, end: lEnd, active }) => {
+  if (!(tEnd <= lStart || lEnd <= tStart)) {
+    if (lStart < tStart) {
+      return {
+        start: tStart,
+        end: tEnd < lEnd ? tEnd : lEnd,
+        active
+      }
+    } else {
+      return {
+        start: lStart,
+        end: tEnd < lEnd ? tEnd : lEnd,
+        active
+      }
+    }
+  }
+  return null
 }
 
 // https://github.com/jashkenas/underscore
@@ -135,6 +161,17 @@ export const loadImage = url => {
   })
 }
 
+export const collectImportantComments = css => {
+  const once = new Set()
+  const cleaned = css.replace(/(\/\*![\s\S]*?\*\/)\n*/gm, (match, p1) => {
+    once.add(p1)
+    return ''
+  })
+  const combined = Array.from(once)
+  combined.push(cleaned)
+  return combined.join('\n')
+}
+
 export const getImageSrc = src => {
   const EXT_REG = /\.(jpeg|jpg|png|gif|svg|webp)(?=\?|$)/i
   const HTTP_REG = /^http(s)?:/
@@ -157,6 +194,7 @@ export const genUpper2LowerKeyHash = keys => {
     return Object.assign(acc, { [key]: value })
   }, {})
 }
+
 /**
  * generate constants map, the value is the key.
  */

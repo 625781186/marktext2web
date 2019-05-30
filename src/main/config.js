@@ -10,3 +10,26 @@ export const EXTENSIONS = [
   'text',
   'txt'
 ]
+
+export const IMAGE_EXTENSIONS = [
+  'jpeg',
+  'jpg',
+  'png',
+  'gif',
+  'svg',
+  'webp'
+]
+
+export const EXTENSION_HASN = {
+  styledHtml: '.html',
+  html: '.html',
+  pdf: '.pdf'
+}
+
+export const DEFAULT_THEME = 'dark'
+
+export const VIEW_MENU_ITEM = {
+  'Source Code Mode': false,
+  'Typewriter Mode': false,
+  'Focus Mode': false
+}

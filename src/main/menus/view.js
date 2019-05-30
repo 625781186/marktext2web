@@ -1,14 +1,9 @@
+import { VIEW_MENU_ITEM } from '../config'
+import * as actions from '../actions/view'
+
 let viewMenu = {
   label: 'View',
   submenu: [{
-    label: 'Reload',
-    accelerator: 'CmdOrCtrl+R',
-    click: function (item, focusedWindow) {
-      if (focusedWindow) {
-        focusedWindow.reload()
-      }
-    }
-  }, {
     label: 'Toggle Full Screen',
     accelerator: (function () {
       if (process.platform === 'darwin') {
@@ -23,6 +18,39 @@ let viewMenu = {
       }
     }
   }, {
+    type: 'separator'
+  }, {
+    label: 'Source Code Mode',
+    accelerator: 'Shift+CmdOrCtrl+S',
+    type: 'checkbox',
+    checked: VIEW_MENU_ITEM['Source Code Mode'],
+    click (item, browserWindow) {
+      actions.view(browserWindow, item, 'sourceCode')
+    }
+  }, {
+    label: 'Typewriter Mode',
+    accelerator: 'Shift+CmdOrCtrl+T',
+    type: 'checkbox',
+    checked: VIEW_MENU_ITEM['Typewriter Mode'],
+    click (item, browserWindow) {
+      actions.view(browserWindow, item, 'typewriter')
+    }
+  }, {
+    label: 'Focus Mode',
+    accelerator: 'Shift+CmdOrCtrl+F',
+    type: 'checkbox',
+    checked: VIEW_MENU_ITEM['Focus Mode'],
+    click (item, browserWindow) {
+      actions.view(browserWindow, item, 'focus')
+    }
+  }, {
+    type: 'separator'
+  }]
+}
+
+if (process.env.NODE_ENV !== 'production' || process.env.NODE_ENV === 'development') {
+  // add devtool when development
+  viewMenu.submenu.push({
     label: 'Toggle Developer Tools',
     accelerator: (function () {
       if (process.platform === 'darwin') {
@@ -36,7 +64,17 @@ let viewMenu = {
         focusedWindow.webContents.toggleDevTools()
       }
     }
-  }]
+  })
+  // add reload when development
+  viewMenu.submenu.push({
+    label: 'Reload',
+    accelerator: 'CmdOrCtrl+R',
+    click: function (item, focusedWindow) {
+      if (focusedWindow) {
+        focusedWindow.reload()
+      }
+    }
+  })
 }
 
 if (process.platform === 'darwin') {

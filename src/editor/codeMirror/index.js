@@ -1,13 +1,18 @@
 import 'codemirror/addon/edit/closebrackets'
 import 'codemirror/addon/edit/closetag'
+import 'codemirror/addon/selection/active-line'
 import 'codemirror/mode/meta'
 import codeMirror from 'codemirror/lib/codemirror'
 
 import loadmode from './loadmode'
+import overlayMode from './overlayMode'
+import languages from './modes'
 import 'codemirror/lib/codemirror.css'
 import './index.css'
+import 'codemirror/theme/railscasts.css'
 
 loadmode(codeMirror)
+overlayMode(codeMirror)
 window.CodeMirror = codeMirror
 
 const modes = codeMirror.modeInfo
@@ -15,10 +20,42 @@ codeMirror.modeURL = process.env.NODE_ENV !== 'production'
   ? './node_modules/codemirror/mode/%N/%N.js'
   : './codemirror/mode/%N/%N.js'
 
+const getModeFromName = name => {
+  let result = null
+  const lang = languages.filter(lang => lang.name === name)[0]
+  if (lang) {
+    const { name, mode, mime } = lang
+    const matched = modes.filter(m => {
+      if (m.mime) {
+        if (Array.isArray(m.mime)) {
+          return m.mime.indexOf(mime) > -1 && m.mode === mode
+        } else {
+          return m.mime === mime && m.mode === mode
+        }
+      } else if (m.mimes.length > 0 && Array.isArray(m.mimes)) {
+        return m.mimes.indexOf(mime) > -1 && m.mode === mode
+      } else {
+        return false
+      }
+    })
+    if (matched.length && typeof matched[0] === 'object') {
+      result = {
+        name,
+        mode: matched[0]
+      }
+    }
+  }
+  return result
+}
+
 export const search = text => {
-  return modes.filter(mode => {
-    return new RegExp(`^${text}`, 'i').test(mode.name)
+  const matchedLangs = languages.filter(lang => {
+    return new RegExp(text, 'i').test(lang.name)
   })
+
+  return matchedLangs
+    .map(({ name }) => getModeFromName(name))
+    .filter(lang => !!lang)
 }
 
 /**
@@ -32,10 +69,11 @@ export const setCursorAtLastLine = cm => {
   cm.setCursor(lastLine, lineHandle.text.length)
 }
 
-// if cursor at firstline return true
+// if cursor at firstLine return true
 export const isCursorAtFirstLine = cm => {
   const cursor = cm.getCursor()
   const { line, ch, outside } = cursor
+
   return line === 0 && ch === 0 && outside
 }
 
@@ -49,7 +87,7 @@ export const isCursorAtLastLine = cm => {
 export const isCursorAtBegin = cm => {
   const cursor = cm.getCursor()
   const { line, ch, hitSide } = cursor
-  return line === 0 && ch === 0 && hitSide
+  return line === 0 && ch === 0 && !!hitSide
 }
 
 export const onlyHaveOneLine = cm => {
@@ -61,7 +99,8 @@ export const isCursorAtEnd = cm => {
   const lastLineHandle = cm.getLineHandle(lastLine)
   const cursor = cm.getCursor()
   const { line, ch, hitSide } = cursor
-  return line === lastLine && ch === lastLineHandle.text.length && hitSide
+
+  return line === lastLine && ch === lastLineHandle.text.length && !!hitSide
 }
 
 export const setCursorAtFirstLine = cm => {
@@ -70,7 +109,7 @@ export const setCursorAtFirstLine = cm => {
 }
 
 export const setMode = (doc, text) => {
-  const m = modes.filter(mode => text === mode.mode)[0]
+  const m = getModeFromName(text)
 
   if (!m) {
     const errMsg = !text
@@ -79,10 +118,10 @@ export const setMode = (doc, text) => {
     return Promise.reject(errMsg) // eslint-disable-line prefer-promise-reject-errors
   }
 
-  const { mode, mime } = m
+  const { mode, mime } = m.mode
   return new Promise(resolve => {
     codeMirror.requireMode(mode, () => {
-      doc.setOption('mode', mime)
+      doc.setOption('mode', mime || mode)
       codeMirror.autoLoadMode(doc, mode)
       resolve(m)
     })

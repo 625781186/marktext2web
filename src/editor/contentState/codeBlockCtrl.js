@@ -1,15 +1,27 @@
-import codeMirror, {
-  setMode, setCursorAtLastLine
-} from '../codeMirror'
-
+import codeMirror, { setMode, setCursorAtLastLine } from '../codeMirror'
 import { createInputInCodeBlock } from '../utils/domManipulate'
 import { codeMirrorConfig, CLASS_OR_ID } from '../config'
-import floatBox from '../floatBox'
-import eventCenter from '../event'
 
 const CODE_UPDATE_REP = /^`{3,}(.*)/
 
 const codeBlockCtrl = ContentState => {
+  ContentState.prototype.selectLanguage = function (paragraph, name) {
+    const block = this.getBlock(paragraph.id)
+    block.text = block.text.replace(/^(`+)([^`]+$)/g, `$1${name}`)
+    this.codeBlockUpdate(block)
+    this.render()
+  }
+  // Fix bug: when click the edge at the code block, the code block will be not focused.
+  ContentState.prototype.focusCodeBlock = function (event) {
+    const key = event.target.id
+    const offset = 0
+
+    this.cursor = {
+      start: { key, offset },
+      end: { key, offset }
+    }
+    this.render()
+  }
   /**
    * [codeBlockUpdate if block updated to `pre` return true, else return false]
    */
@@ -18,44 +30,36 @@ const codeBlockCtrl = ContentState => {
     if (match) {
       block.type = 'pre'
       block.text = ''
+      block.history = null
       block.lang = match[1]
     }
     return !!match
   }
 
-  ContentState.prototype.pre2CodeMirror = function () {
+  ContentState.prototype.pre2CodeMirror = function (isRenderCursor) {
+    const { eventCenter } = this
     const pres = document.querySelectorAll(`pre.${CLASS_OR_ID['AG_CODE_BLOCK']}`)
     Array.from(pres).forEach(pre => {
       const id = pre.id
       const block = this.getBlock(id)
 
-      if (this.codeBlocks.has(id)) {
-        const cm = this.codeBlocks.get(id)
-        if (block.pos && this.cursor.key === block.key) {
-          cm.focus()
-          cm.setCursor(block.pos)
-        }
-        return
-      }
-
-      pre.innerHTML = ''
-      const autofocus = id === this.cursor.key
-      const config = Object.assign(codeMirrorConfig, { autofocus })
+      const autofocus = id === this.cursor.start.key && isRenderCursor
+      const config = Object.assign(codeMirrorConfig, { autofocus, value: block.text })
       const codeBlock = codeMirror(pre, config)
       const mode = pre.getAttribute('data-lang')
       const input = createInputInCodeBlock(pre)
 
       const handler = langMode => {
         const {
-          mode
+          name
         } = langMode
-        setMode(codeBlock, mode)
-          .then(mode => {
-            pre.setAttribute('data-lang', mode.name)
-            input.value = mode.name
-            block.lang = mode.name.toLowerCase()
+        setMode(codeBlock, name)
+          .then(m => {
+            pre.setAttribute('data-lang', m.name)
+            input.value = m.name
+            block.lang = m.name.toLowerCase()
             input.blur()
-            if (this.cursor.key === block.key) {
+            if (this.cursor.start.key === block.key && isRenderCursor) {
               if (block.pos) {
                 codeBlock.focus()
                 codeBlock.setCursor(block.pos)
@@ -67,19 +71,18 @@ const codeBlockCtrl = ContentState => {
           .catch(err => {
             console.warn(err)
           })
-        floatBox.hideIfNeeded()
-      }
-
-      if (block.text) {
-        codeBlock.setValue(block.text)
       }
 
       this.codeBlocks.set(id, codeBlock)
 
       if (mode) {
         handler({
-          mode
+          name: mode
         })
+      }
+
+      if (block.history) {
+        codeBlock.setHistory(block.history)
       }
 
       eventCenter.attachDOMEvent(input, 'keyup', () => {
@@ -95,8 +98,16 @@ const codeBlockCtrl = ContentState => {
         block.pos = cm.getCursor()
       })
 
+      codeBlock.on('cursorActivity', (cm, event) => {
+        block.coords = cm.cursorCoords()
+        block.pos = cm.getCursor()
+      })
+
       let lastUndoLength = 0
       codeBlock.on('change', (cm, change) => {
+        block.text = cm.getValue()
+        block.history = cm.getHistory()
+
         const { undo } = cm.historySize()
         if (undo > lastUndoLength) {
           this.history.push({

@@ -3,14 +3,14 @@ import {
   getUniqueId
 } from './utils'
 
-class Event {
+class EventCenter {
   constructor () {
     this.events = []
     this.listeners = {}
     this.eventIds = new Set() // use to store eventId
     // bind mousetrap methods to event instance.
-    ;['bind', 'unbind', 'trigger', 'stopCallback', 'reset', 'handleKey', 'addKeycodes'].forEach(mothod => {
-      this[mothod] = mousetrap[mothod]
+    ;['bind', 'unbind', 'trigger', 'stopCallback', 'reset', 'handleKey', 'addKeycodes'].forEach(method => {
+      this[method] = mousetrap[method]
     })
   }
   /**
@@ -62,16 +62,6 @@ class Event {
   }
   /**
    * dispatch custom event
-   * customEvent includes: {
-   *   'markedTextChange',
-   *   'paragraphChange',
-   *   'arrow',
-   *   'elementUpdate': 'update `p` elementNode to other elementNode. ex: `h1`, `ul-li`, `blockquote` or reversed'
-   *   'enter',
-   *   'delete',
-   *   'tab',
-   *   'backspace', 'paragraphBlur'
-   * }
    */
   dispatch (event, ...data) {
     const eventListener = this.listeners[event]
@@ -93,4 +83,4 @@ class Event {
   }
 }
 
-export default new Event()
+export default EventCenter
