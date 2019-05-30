@@ -60,7 +60,8 @@
         'pathname', 'filename', 'windowActive', 'wordCount',
         'typewriter', 'focus', 'sourceCode', 'markdown',
         'cursor', 'theme', 'themeCSS', 'platform'
-      ])
+      ]),
+
     },
     created () {
       const { dispatch } = this.$store

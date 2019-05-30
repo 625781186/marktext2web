@@ -1,57 +1,63 @@
-import { VIEW_MENU_ITEM } from '../config'
+import {VIEW_MENU_ITEM} from '../config'
 import * as actions from '../actions/view'
 
 let viewMenu = {
-  label: 'View',
-  submenu: [{
-    label: 'Toggle Full Screen',
-    accelerator: (function () {
-      if (process.platform === 'darwin') {
-        return 'Ctrl+Command+F'
-      } else {
-        return 'F11'
-      }
-    })(),
-    click: function (item, focusedWindow) {
-      if (focusedWindow) {
-        focusedWindow.setFullScreen(!focusedWindow.isFullScreen())
-      }
-    }
-  }, {
-    type: 'separator'
-  }, {
-    label: 'Source Code Mode',
-    accelerator: 'Shift+CmdOrCtrl+S',
-    type: 'checkbox',
-    checked: VIEW_MENU_ITEM['Source Code Mode'],
-    click (item, browserWindow) {
-      actions.view(browserWindow, item, 'sourceCode')
-    }
-  }, {
-    label: 'Typewriter Mode',
-    accelerator: 'Shift+CmdOrCtrl+T',
-    type: 'checkbox',
-    checked: VIEW_MENU_ITEM['Typewriter Mode'],
-    click (item, browserWindow) {
-      actions.view(browserWindow, item, 'typewriter')
-    }
-  }, {
-    label: 'Focus Mode',
-    accelerator: 'Shift+CmdOrCtrl+F',
-    type: 'checkbox',
-    checked: VIEW_MENU_ITEM['Focus Mode'],
-    click (item, browserWindow) {
-      actions.view(browserWindow, item, 'focus')
-    }
-  }, {
-    type: 'separator'
-  }]
+  label  : 'View',
+  submenu: [
+    {
+      label      : 'Toggle Full Screen',
+      accelerator: (function () {
+        if (process.platform === 'darwin') {
+          return 'Ctrl+Command+F'
+        } else {
+          return 'F11'
+        }
+      })(),
+      click      : function (item, focusedWindow) {
+        if (focusedWindow) {
+          focusedWindow.setFullScreen(!focusedWindow.isFullScreen())
+        }
+      },
+    },
+    {
+      type: 'separator',
+    },
+    {
+      label      : 'Source Code Mode',
+      accelerator: 'Shift+CmdOrCtrl+S',
+      type       : 'checkbox',
+      checked    : VIEW_MENU_ITEM['Source Code Mode'],
+      click(item, browserWindow) {
+        actions.view(browserWindow, item, 'sourceCode')
+      },
+    },
+    {
+      label      : 'Typewriter Mode',
+      accelerator: 'Shift+CmdOrCtrl+T',
+      type       : 'checkbox',
+      checked    : VIEW_MENU_ITEM['Typewriter Mode'],
+      click(item, browserWindow) {
+        actions.view(browserWindow, item, 'typewriter')
+      },
+    },
+    {
+      label      : 'Focus Mode',
+      accelerator: 'Shift+CmdOrCtrl+F',
+      type       : 'checkbox',
+      checked    : VIEW_MENU_ITEM['Focus Mode'],
+      click(item, browserWindow) {
+        actions.view(browserWindow, item, 'focus')
+      },
+    },
+    {
+      type: 'separator',
+    }],
 }
 
 if (process.env.NODE_ENV !== 'production' || process.env.NODE_ENV === 'development') {
   // add devtool when development
   viewMenu.submenu.push({
-    label: 'Toggle Developer Tools',
+    label      : 'Toggle Developer Tools',
     accelerator: (function () {
       if (process.platform === 'darwin') {
         return 'Alt+Command+I'
@@ -59,30 +65,30 @@ if (process.env.NODE_ENV !== 'production' || process.env.NODE_ENV === 'developme
         return 'Ctrl+Shift+I'
       }
     })(),
-    click: function (item, focusedWindow) {
+    click      : function (item, focusedWindow) {
       if (focusedWindow) {
         focusedWindow.webContents.toggleDevTools()
       }
-    }
+    },
   })
   // add reload when development
   viewMenu.submenu.push({
-    label: 'Reload',
+    label      : 'Reload',
     accelerator: 'CmdOrCtrl+R',
-    click: function (item, focusedWindow) {
+    click      : function (item, focusedWindow) {
       if (focusedWindow) {
         focusedWindow.reload()
       }
-    }
+    },
   })
 }
 
 if (process.platform === 'darwin') {
   viewMenu.submenu.push({
-    type: 'separator'
+    type: 'separator',
   }, {
     label: 'Bring All to Front',
-    role: 'front'
+    role : 'front',
   })
 }
 

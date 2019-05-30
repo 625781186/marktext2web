@@ -215,7 +215,7 @@
   }
 </script>
 
-<style>
+<style scoped >
   .search-bar {
     width: 100%;
     padding: 5px;

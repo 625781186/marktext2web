@@ -1,6 +1,6 @@
 'use strict'
 
-import { app, Menu } from 'electron'
+// import { app, Menu } from 'electron'
 import configureMenu, { dockMenu } from './menus'
 import createWindow, { windows } from './createWindow'
 // import { autoUpdater } from "electron-updater"
@@ -17,6 +17,7 @@ const onReady = () => {
   } else {
     createWindow()
   }
+
   const menu = Menu.buildFromTemplate(configureMenu({ app }))
   Menu.setApplicationMenu(menu)
   if (process.platform === 'darwin') {

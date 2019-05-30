@@ -68,7 +68,7 @@
   }
 </script>
 
-<style>
+<style scoped>
   .bottom-status {
     width: 100%;
     height: 25px;

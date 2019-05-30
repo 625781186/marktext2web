@@ -39,6 +39,7 @@
       }
     },
     created () {
+      console.log("bus2",this.$id(bus))
       this.$nextTick(() => {
         const { markdown = '', theme } = this
         this.contentState = new ContentState()

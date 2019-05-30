@@ -46,6 +46,7 @@
       ])
     },
     created () {
+      console.log("bus3",this.$id(bus))
       this.$nextTick(() => {
         bus.$on('upload-image', this.handleUpload)
       })

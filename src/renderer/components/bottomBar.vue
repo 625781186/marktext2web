@@ -24,7 +24,7 @@
   }
 </script>
 
-<style>
+<style scoped>
   .bottom-bar {
     position: fixed;
     left: 0;

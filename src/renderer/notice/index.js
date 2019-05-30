@@ -1,4 +1,5 @@
 import bus from '../bus'
+
 import { getIdWithoutSet } from '../../editor/utils'
 
 export const error = msg => {

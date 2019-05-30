@@ -20,32 +20,36 @@ ipcMain.on('AGANI::NEED_UPDATE', (e, { needUpdate }) => {
   }
 })
 
-autoUpdater.on('update-available', () => {
-  if (win) {
-    win.webContents.send('AGANI::UPDATE_AVAILABLE', 'Found updates, do you want update now?')
-  }
-  updater.enabled = true
-  updater = null
-})
-
-autoUpdater.on('update-not-available', () => {
-  if (win) {
-    win.webContents.send('AGANI::UPDATE_NOT_AVAILABLE', 'Current version is up-to-date.')
-  }
-  updater.enabled = true
-  updater = null
-})
-
-autoUpdater.on('update-downloaded', () => {
-  if (win) {
-    win.webContents.send('AGANI::UPDATE_DOWNLOADED', 'Updates downloaded, application will be quit for update...')
-  }
-  setImmediate(() => autoUpdater.quitAndInstall())
-})
+// // ↓ CCC 2019/05/29 17:17 comment update
+// autoUpdater.on('update-available', () => {
+ //   if (win) {
+ //     win.webContents.send('AGANI::UPDATE_AVAILABLE', 'Found updates, do you want update now?')
+ //   }
+ //   updater.enabled = true
+ //   updater = null
+ // })
+ //
+ // autoUpdater.on('update-not-available', () => {
+ //   if (win) {
+ //     win.webContents.send('AGANI::UPDATE_NOT_AVAILABLE', 'Current version is up-to-date.')
+ //   }
+ //   updater.enabled = true
+ //   updater = null
+ // })
+ //
+ // autoUpdater.on('update-downloaded', () => {
+ //   if (win) {
+ //     win.webContents.send('AGANI::UPDATE_DOWNLOADED', 'Updates downloaded, application will be quit for update...')
+ //   }
+ //   setImmediate(() => autoUpdater.quitAndInstall())
+ // }) //comment update 
+// ↑ CCC 2019/05/29 17:17
 
 export const checkUpdates = (menuItem, browserWindow) => {
   updater = menuItem
   win = browserWindow
   updater.enabled = false
-  autoUpdater.checkForUpdates()
+
+  autoUpdater.checkForUpdates() //comment update
+
 }

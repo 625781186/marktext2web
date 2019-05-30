@@ -3,7 +3,7 @@
 import fs from 'fs'
 // import chokidar from 'chokidar'
 import path from 'path'
-import { app, dialog, ipcMain, BrowserWindow } from 'electron'
+// import { app, dialog, ipcMain, BrowserWindow } from 'electron'
 import createWindow, { windows } from '../createWindow'
 import { EXTENSIONS, EXTENSION_HASN } from '../config'
 

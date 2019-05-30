@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+// import { ipcMain } from 'electron'
 import { getMenuItem } from '../utils'
 
 const FORMAT_MAP = {
@@ -25,6 +25,6 @@ export const format = (win, type) => {
   win.webContents.send('AGANI::format', { type })
 }
 
-ipcMain.on('AGANI::selection-formats', (e, formats) => {
-  selectFormat(formats)
-})
+// ipcMain.on('AGANI::selection-formats', (e, formats) => {
+//   selectFormat(formats)
+// })

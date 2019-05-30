@@ -7,7 +7,7 @@
       ref="editor"
       class="editor-component"
     ></div>
-    <el-dialog 
+    <el-dialog
       :visible.sync="dialogTableVisible"
       :show-close="isShowClose"
       :modal="true"
@@ -60,68 +60,70 @@
 <script>
   import Aganippe from '../../editor'
   import bus from '../bus'
-  import { animatedScrollTo } from '../util'
 
-  const STANDAR_Y = 320
+  import {animatedScrollTo} from '../util'
+
+  const STANDAR_Y     = 320
   const PARAGRAPH_CMD = [
     'ul-bullet', 'ul-task', 'ol-order', 'pre', 'blockquote', 'heading 1', 'heading 2', 'heading 3',
-    'heading 4', 'heading 5', 'heading 6', 'upgrade heading', 'degrade heading', 'paragraph', 'hr'
+    'heading 4', 'heading 5', 'heading 6', 'upgrade heading', 'degrade heading', 'paragraph', 'hr',
   ]
 
   export default {
-    props: {
+    props  : {
       typewriter: {
-        type: Boolean,
-        required: true
+        type    : Boolean,
+        required: true,
       },
-      focus: {
-        type: Boolean,
-        required: true
+      focus     : {
+        type    : Boolean,
+        required: true,
       },
       sourceCode: {
-        type: Boolean,
-        required: true
+        type    : Boolean,
+        required: true,
       },
-      markdown: String,
-      cursor: Object,
-      theme: String,
-      themeCss: Object
+      markdown  : String,
+      cursor    : Object,
+      theme     : String,
+      themeCss  : Object,
     },
-    data () {
+    data() {
       return {
-        selectionChange: null,
-        editor: null,
-        pathname: '',
-        isShowClose: false,
+        selectionChange   : null,
+        editor            : null,
+        pathname          : '',
+        isShowClose       : false,
         dialogTableVisible: false,
-        tableChecker: {
-          rows: 4,
-          columns: 3
-        }
+        tableChecker      : {
+          rows   : 4,
+          columns: 3,
+        },
       }
     },
-    watch: {
+    watch  : {
       typewriter: function (value) {
         if (value) {
           this.scrollToCursor()
         }
       },
-      focus: function (value) {
+      focus     : function (value) {
         this.editor.setFocusMode(value)
       },
-      theme: function (value, oldValue) {
-        const { editor, themeCss } = this
+      theme     : function (value, oldValue) {
+        const {editor, themeCss} = this
         if (value !== oldValue && editor) {
           editor.setTheme(value, themeCss[value])
         }
-      }
+      },
     },
-    created () {
+    created() {
+      console.log("bus1", this.$id(bus))
       this.$nextTick(() => {
-        const ele = this.$refs.editor
-        this.editor = new Aganippe(ele)
-        const { container } = this.editor
-        const { markdown, theme, themeCss } = this
+        const ele                         = this.$refs.editor
+        this.editor                       = new Aganippe(ele)
+        const {container}                 = this.editor
+        const {markdown, theme, themeCss} = this
         // init set markdown and edit mode(typewriter mode and focus mode)
         if (markdown.trim()) {
           this.setMarkdownToEditor(markdown)
@@ -147,11 +149,11 @@
         bus.$on('insert-image', this.handleSelect)
 
         this.editor.on('change', (markdown, wordCount, cursor) => {
-          this.$store.dispatch('SAVE_FILE', { markdown, wordCount, cursor })
+          this.$store.dispatch('SAVE_FILE', {markdown, wordCount, cursor})
         })
 
         this.editor.on('selectionChange', changes => {
-          const { y } = changes.cursorCoords
+          const {y} = changes.cursorCoords
 
           if (this.typewriter) {
             animatedScrollTo(container, container.scrollTop + y - STANDAR_Y, 100)
@@ -167,96 +169,97 @@
       })
     },
     methods: {
-      handleUndo () {
+      handleUndo() {
         if (this.editor) {
           this.editor.undo()
         }
       },
-      handleRedo () {
+      handleRedo() {
         if (this.editor) {
           this.editor.redo()
         }
       },
-      handleSelect (url) {
+      handleSelect(url) {
         if (!this.sourceCode) {
           this.editor && this.editor.insertImage(url)
         }
       },
-      handleSearch (value, opt) {
+      handleSearch(value, opt) {
         const searchMatches = this.editor.search(value, opt)
         this.$store.dispatch('SEARCH', searchMatches)
         this.scrollToHighlight()
       },
-      handReplace (value, opt) {
+      handReplace(value, opt) {
         const searchMatches = this.editor.replace(value, opt)
         this.$store.dispatch('SEARCH', searchMatches)
       },
-      scrollToCursor () {
+      scrollToCursor() {
         this.$nextTick(() => {
-          const { container } = this.editor
-          const { y } = this.editor.getSelection().cursorCoords
+          const {container} = this.editor
+          const {y}         = this.editor.getSelection().cursorCoords
           animatedScrollTo(container, container.scrollTop + y - STANDAR_Y, 300)
         })
       },
-      scrollToHighlight () {
+      scrollToHighlight() {
         // Scroll to search highlight word
-        const { container } = this.editor
-        const anchor = document.querySelector('.ag-highlight')
+        const {container} = this.editor
+        const anchor      = document.querySelector('.ag-highlight')
         if (anchor) {
-          const { y } = anchor.getBoundingClientRect()
+          const {y}      = anchor.getBoundingClientRect()
           const DURATION = 300
           animatedScrollTo(container, container.scrollTop + y - STANDAR_Y, DURATION)
         }
       },
-      handleFind (action) {
+      handleFind(action) {
         const searchMatches = this.editor.find(action)
         this.$store.dispatch('SEARCH', searchMatches)
         this.scrollToHighlight()
       },
-      async handleExport (type) {
+      async handleExport(type) {
         switch (type) {
           case 'styledHtml': {
             const content = await this.editor.exportStyledHTML()
-            this.$store.dispatch('EXPORT', { type, content })
+            this.$store.dispatch('EXPORT', {type, content})
             break
           }
 
           case 'html': {
             const content = this.editor.exportUnstylishHtml()
-            this.$store.dispatch('EXPORT', { type, content })
+            this.$store.dispatch('EXPORT', {type, content})
             break
           }
 
           case 'pdf': {
-            this.$store.dispatch('EXPORT', { type })
+            this.$store.dispatch('EXPORT', {type})
             break
           }
         }
       },
-      handleEditParagraph (type) {
+      handleEditParagraph(type) {
         if (type === 'table') {
-          this.tableChecker = { rows: 4, columns: 3 }
+          this.tableChecker       = {rows: 4, columns: 3}
           this.dialogTableVisible = true
           this.$nextTick(() => {
             this.$refs.rowInput.focus()
           })
-        } else if (PARAGRAPH_CMD.indexOf(type) > -1) {
+        }
+        else if (PARAGRAPH_CMD.indexOf(type) > -1) {
           this.editor && this.editor.updateParagraph(type)
         }
       },
-      handleInlineFormat (type) {
+      handleInlineFormat(type) {
         this.editor && this.editor.format(type)
       },
-      handleDialogTableConfirm () {
+      handleDialogTableConfirm() {
         this.dialogTableVisible = false
         this.editor && this.editor.createTable(this.tableChecker)
       },
-      setMarkdownToEditor (markdown) {
-        const { cursor } = this
+      setMarkdownToEditor(markdown) {
+        const {cursor} = this
         this.editor && this.editor.setMarkdown(markdown, cursor)
-      }
+      },
     },
-    beforeDestroy () {
+    beforeDestroy() {
       bus.$off('file-loaded', this.setMarkdownToEditor)
       bus.$off('undo', this.handleUndo)
       bus.$off('redo', this.handleRedo)
@@ -270,27 +273,33 @@
 
       this.editor.destroy()
       this.editor = null
-    }
+    },
   }
 </script>
 
 <style>
-  /*  @import '../../editor/themes/dark.css';*/
+
+  /*@import  '../../../static/themes/light.css';*/
+  @import '../../../static/themes/dark.css';
   @import '../../editor/index.css';
+
   .editor-wrapper {
     height: calc(100vh - 22px);
   }
+
   .editor-wrapper.source {
     position: absolute;
     z-index: -1;
     left: -10000px;
     opacity: 0;
   }
+
   .editor-component {
     height: 100%;
     overflow: auto;
     box-sizing: border-box;
   }
+
   .typewriter .editor-component {
     padding-top: calc(50vh - 136px);
     padding-bottom: calc(50vh - 54px);
@@ -304,6 +313,7 @@
     width: 1.5em;
     height: 1.5em;
   }
+
   /* for dark theme */
   .dark.editor-wrapper {
     background: rgb(43, 43, 43);

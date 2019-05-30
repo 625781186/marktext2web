@@ -3,7 +3,7 @@
 import fs from 'fs'
 import path from 'path'
 import { BrowserWindow, app } from 'electron'
-import windowStateKeeper from 'electron-window-state'
+// import windowStateKeeper from 'electron-window-state'
 
 export const windows = new Map()
 

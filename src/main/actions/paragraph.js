@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+// import { ipcMain } from '../electron'
 import { getMenuItem } from '../utils'
 
 const DISABLE_LABELS = [
@@ -62,20 +62,20 @@ export const paragraph = (win, type) => {
   win.webContents.send('AGANI::paragraph', { type })
 }
 
-ipcMain.on('AGANI::selection-change', (e, { start, end, affiliation }) => {
-  // format menu
-  const formatMenuItem = getMenuItem('Format')
-  formatMenuItem.submenu.items.forEach(item => (item.enabled = true))
-  // handle menu checked
-  setCheckedMenuItem(affiliation)
-  // handle disable
-  allCtrl(true)
-  if (/th|td/.test(start.type) && /th|td/.test(end.type)) {
-    allCtrl(false)
-  } else if (start.key !== end.key) {
-    formatMenuItem.submenu.items
-      .filter(item => DISABLE_LABELS.includes(item.label))
-      .forEach(item => (item.enabled = false))
-    disableNoMultiple()
-  }
-})
+// ipcMain.on('AGANI::selection-change', (e, { start, end, affiliation }) => {
+//   // format menu
+//   const formatMenuItem = getMenuItem('Format')
+//   formatMenuItem.submenu.items.forEach(item => (item.enabled = true))
+//   // handle menu checked
+//   setCheckedMenuItem(affiliation)
+//   // handle disable
+//   allCtrl(true)
+//   if (/th|td/.test(start.type) && /th|td/.test(end.type)) {
+//     allCtrl(false)
+//   } else if (start.key !== end.key) {
+//     formatMenuItem.submenu.items
+//       .filter(item => DISABLE_LABELS.includes(item.label))
+//       .forEach(item => (item.enabled = false))
+//     disableNoMultiple()
+//   }
+// })

@@ -227,7 +227,7 @@
   }
 </script>
 
-<style>
+<style scoped>
   .el-dialog__header {
     margin-bottom: 20px;
   }

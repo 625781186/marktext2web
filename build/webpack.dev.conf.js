@@ -54,8 +54,15 @@ const devWebpackConfig = merge(baseWebpackConfig, {
     // https://github.com/ampedandwired/html-webpack-plugin
     new HtmlWebpackPlugin({
       filename: 'index.html',
-      template: 'index.html',
-      inject: true
+      template: path.resolve(__dirname, '../src/index.ejs'),
+      minify: {
+        collapseWhitespace: true,
+        removeAttributeQuotes: true,
+        removeComments: true
+      },
+      nodeModules: process.env.NODE_ENV !== 'production'
+        ? path.resolve(__dirname, '../node_modules')
+        : false
     }),
     // copy custom static assets
     new CopyWebpackPlugin([
