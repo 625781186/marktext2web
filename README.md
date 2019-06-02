@@ -31,8 +31,12 @@ npm test
 
 I try `npm run build:web`success version `v0.0.1` and `v0.0.2`of [Marktext](https://github.com/marktext/marktext) , Just a few small changes.
 
-## Todoing: Marktext v0.7.17
+## ~~Todoing: Marktext v0.7.17~~
 Since it is difficult to install some modules between 0.0.1 and 0.7.17, switch directly to version 0.7.17.
+
+## Todoing: Marktext v0.14.0
+  finshed v0.7.17: ipc & menu ;
+  I took a look at the rest of the code, and found it to be quite different from the 0.7 version structure, so I went straight from the back.
 
 TODO: 
 - Create a module that mimics electron communication;
