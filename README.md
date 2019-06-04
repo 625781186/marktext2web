@@ -42,4 +42,4 @@ Since it is difficult to install some modules between 0.0.1 and 0.7.17, switch d
 TODO: 
 - Create a module that mimics electron communication;
 - Generate vue Menu component according to menu.js (to achieve minimum changes in the source code) ;
-![image.png](https://i.loli.net/2019/05/29/5cee2bf0a556586828.gif)
+![image](https://user-images.githubusercontent.com/30521429/58886125-f79f8380-8715-11e9-91a5-c4b15dc09f5d.png)

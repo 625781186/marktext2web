@@ -16,8 +16,12 @@
   </div>
 </template>
 <script>
-  import configureMenu from '../../main/menus'
+  import {Menu} from '@/../main/electron';
+  import configureMenu from '../../main/menus/index.js'
   import NavMenu from './menu_nav.vue'
+
+  console.log("先执行 import ,再执行这里... start menu")
+  //init menus
 
 
   export default {
@@ -37,13 +41,20 @@
         // console.log(key);
       },
       initMenu() {
-        let xx = configureMenu({})
-        // alert(xx)
-        // console.log(xx)
-        return xx
+        console.log("init vue menu")
+        let all_menu       = configureMenu({})
+        const items        = Menu.buildFromTemplate(all_menu)
+        Menu.items         = items
+        Menu.submenu       = items;
+        // Menu.submenu.items = Menu.submenu;
+        console.log("1:",Menu)
+        console.log("2:",Menu.items)
+        console.log("3:",Menu.submenu)
+        console.log("4:",Menu.submenu.items)
+        return items
       },
     },
-    mounted() {
+    create() {
       this.navMenus = this.initMenu()
 
     },

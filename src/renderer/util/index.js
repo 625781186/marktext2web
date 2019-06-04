@@ -6,6 +6,8 @@ const easeInOutQuad = function (t, b, c, d) {
   return -c / 2 * (t * (t - 2) - 1) + b
 }
 
+const ID_PREFEX = 'mt-'
+let id = 0
 const DOTU = 'DOTU'
 const MAX_HISTORY_LENGTH = 10
 const DOTU_COLLECTION = 'DOTU_COLLECTION'
@@ -96,6 +98,43 @@ export const dotuHistory = {
   }
 }
 
+export const adjustCursor = (cursor, preline, line, nextline) => {
+  let newCursor = Object.assign({}, { line: cursor.line, ch: cursor.ch })
+  // It's need to adjust the cursor when cursor is at begin or end in table row.
+  if (/\|[^|]+\|.+\|\s*$/.test(line)) {
+    if (/\|\s*:?-+:?\s*\|[:-\s|]+\|\s*$/.test(line)) { // cursor in `| --- | :---: |` :the second line of table
+      newCursor.line += 1 // reset the cursor to the next line
+      newCursor.ch = nextline.indexOf('|') + 1
+    } else { // cursor is not at the second line to table
+      if (cursor.ch <= line.indexOf('|')) newCursor.ch = line.indexOf('|') + 1
+      if (cursor.ch >= line.lastIndexOf('|')) newCursor.ch = line.lastIndexOf('|') - 1
+    }
+  }
+
+  // Need to adjust the cursor when cursor in the first or last line of code/math block.
+  if (/```[\S]*/.test(line) || /^\$\$$/.test(line)) {
+    if (typeof nextline === 'string' && /\S/.test(nextline)) {
+      newCursor.line += 1
+      newCursor.ch = 0
+    } else if (typeof preline === 'string' && /\S/.test(preline)) {
+      newCursor.line -= 1
+      newCursor.ch = preline.length
+    }
+  }
+
+  // Need to adjust the cursor when cursor at the begin of the list
+  if (/[*+-]\s.+/.test(line) && newCursor.ch <= 1) {
+    newCursor.ch = 2
+  }
+  // Need to adjust the cursor when cursor at blank line or in a line contains HTML tag.
+  // set the newCursor to null, the new cursor will at the last line of document.
+  if (!/\S/.test(line) || /<\/?([a-zA-Z\d-]+)(?=\s|>).*>/.test(line)) {
+    newCursor = null
+  }
+
+  return newCursor
+}
+
 export const animatedScrollTo = function (element, to, duration, callback) {
   let start = element.scrollTop
   let change = to - start
@@ -130,4 +169,20 @@ export const animatedScrollTo = function (element, to, duration, callback) {
     }
   }
   requestAnimationFrame(animateScroll)
+}
+
+export const getUniqueId = () => {
+  return `${ID_PREFEX}${id++}`
+}
+
+export const hasKeys = obj => Object.keys(obj).length > 0
+
+/**
+ * Clone an object as a shallow or deep copy.
+ *
+ * @param {*} obj Object to clone
+ * @param {Boolean} deepCopy Create a shallow (false) or deep copy (true)
+ */
+export const cloneObj = (obj, deepCopy=true) => {
+  return deepCopy ? JSON.parse(JSON.stringify(obj)) : Object.assign({}, obj)
 }

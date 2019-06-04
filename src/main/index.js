@@ -1,55 +1,17 @@
-'use strict'
+import './globalSetting'
+import './cli'
+import './exceptionHandler'
+import { checkSystem } from './utils/checkSystem'
+import App from './app'
 
-// import { app, Menu } from 'electron'
-import configureMenu, { dockMenu } from './menus'
-import createWindow, { windows } from './createWindow'
-// import { autoUpdater } from "electron-updater"
-
-let openFilesCache = []
-
-const onReady = () => {
-  if (process.platform === 'win32' && process.argv.length >= 2) {
-    openFilesCache = [process.argv[1]]
-  }
-  if (openFilesCache.length) {
-    openFilesCache.forEach(path => createWindow(path))
-    openFilesCache.length = 0 // empty the open file path cache
-  } else {
-    createWindow()
-  }
-
-  const menu = Menu.buildFromTemplate(configureMenu({ app }))
-  Menu.setApplicationMenu(menu)
-  if (process.platform === 'darwin') {
-    // app.dock is only for macosx
-    app.dock.setMenu(dockMenu)
-  }
+// NOTE: We only support Linux, macOS and Windows but not BSD nor SunOS.
+if (!/^(darwin|win32|linux)$/i.test(process.platform)) {
+  console.error(`Operating system "${process.platform}" is not supported! Please open an issue at "https://github.com/marktext/marktext".`)
+  process.exit(1)
 }
 
-const openFile = (event, path) => {
-  event.preventDefault()
-  if (app.isReady()) {
-    createWindow(path)
-  } else {
-    openFilesCache.push(path)
-  }
-}
+checkSystem()
 
-app.on('open-file', openFile)
+const app = new App()
 
-app.on('ready', onReady)
-
-app.on('window-all-closed', () => {
-  app.removeListener('open-file', openFile)
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
-})
-
-app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (windows.size === 0) {
-    onReady()
-  }
-})
+app.init()

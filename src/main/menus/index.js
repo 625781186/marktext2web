@@ -5,20 +5,18 @@
 // import view from './view'
 // import windowMenu from './windowMenu'
 import paragraph from './paragraph'
-import format from './format'
+// import format from './format'
 import theme from './theme'
 
 // export dockMenu from './dock'
 
-export default function configureMenu ({ app }) {
-  let template = process.platform === 'darwin' ? [marktext({ app })] : []
-
+export default function (recentlyUsedFiles) {
   return [
-    // ...template,
-    // file,
+    ...(process.platform === 'darwin' ? [marktext] : []),
+    file(recentlyUsedFiles),
     // edit,
     paragraph,
-    format,
+    // format,
     // windowMenu,
     theme,
     // view,

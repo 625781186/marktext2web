@@ -1,114 +1,187 @@
 import e_bus from "./electron_bus"
+import {mix} from "../utils/index"
 
-class _Win{
-  constructor(){
-    this.webContents = window.e_bus
+class _Win {
+  constructor() {
+    this.webContents = e_bus
   }
 
 }
-class _BrowserWindow{
-  constructor(){
-    this.win = new _Win()
+
+class _BrowserWindow {
+  constructor() {
+    this._win        = new _Win()
+    this.webContents = e_bus
   }
-  fromWebContents(e_sender=null){
-    return this.win
+
+  fromWebContents(e_sender = null) {
+    return this._win
   }
+
+  get win() {
+    return this._win
+  }
+
+  set win(value) {
+    this._win = value
+
+  }
+
+
 }
 
+class _App {
+  clearRecentDocuments() {
+    return null
+  }
+}
 
 const BrowserWindow = new _BrowserWindow();
 const shell         = "";
-const app           = "";
+const app           = new _App();
 const dialog        = "";
 const ipcMain       = e_bus;
 const ipcRenderer   = e_bus;
 const remote        = "";
+const screen        = "";
+const clipboard        = "";
+const systemPreferences        = "";
+const crashReporter        = "";
 
-class Menu {
-  //
-  // // Docs: http://electron.atom.io/docs/api/menu
-  //
-  // /**
-  //  * Emitted when a popup is closed either manually or with menu.closePopup().
-  //  */
-  // on(event: 'menu-will-close', listener: (event: Event) => void): this;
-  // once(event: 'menu-will-close', listener: (event: Event) => void): this;
-  // addListener(event: 'menu-will-close', listener: (event: Event) => void): this;
-  // removeListener(event: 'menu-will-close', listener: (event: Event) => void): this;
-  // /**
-  //  * Emitted when menu.popup() is called.
-  //  */
-  // on(event: 'menu-will-show', listener: (event: Event) => void): this;
-  // once(event: 'menu-will-show', listener: (event: Event) => void): this;
-  // addListener(event: 'menu-will-show', listener: (event: Event) => void): this;
-  // removeListener(event: 'menu-will-show', listener: (event: Event) => void): this;
-  // constructor();
-  // /**
-  //  * Generally, the template is just an array of options for constructing a MenuItem.
-  //  * The usage can be referenced above. You can also attach other fields to the
-  //  * element of the template and they will become properties of the constructed menu
-  //  * items.
-  //  */
-  // static buildFromTemplate(template: MenuItemConstructorOptions[]): Menu;
-  // /**
-  //  * Note: The returned Menu instance doesn't support dynamic addition or removal of
-  //  * menu items. Instance properties can still be dynamically modified.
-  //  */
-  // static getApplicationMenu(): Menu | null;
-  // /**
-  //  * Sends the action to the first responder of application. This is used for
-  //  * emulating default macOS menu behaviors. Usually you would just use the role
-  //  * property of a MenuItem. See the macOS Cocoa Event Handling Guide for more
-  //  * information on macOS' native actions.
-  //  */
-  // static sendActionToFirstResponder(action: string): void;
-  // /**
-  //  * Sets menu as the application menu on macOS. On Windows and Linux, the menu will
-  //  * be set as each window's top menu. Passing null will remove the menu bar on
-  //  * Windows and Linux but has no effect on macOS. Note: This API has to be called
-  //  * after the ready event of app module.
-  //  */
-  // static setApplicationMenu(menu: Menu | null): void;
-  // /**
-  //  * Appends the menuItem to the menu.
-  //  */
-  // append(menuItem: MenuItem): void;
-  // /**
-  //  * Closes the context menu in the browserWindow.
-  //  */
-  // closePopup(browserWindow?: BrowserWindow): void;
-  // getMenuItemById(id: string): MenuItem;
-  // /**
-  //  * Inserts the menuItem to the pos position of the menu.
-  //  */
-  // insert(pos: number, menuItem: MenuItem): void;
-  // /**
-  //  * Pops up this menu as a context menu in the BrowserWindow.
-  //  */
-  // popup(options: PopupOptions): void;
-  // items: MenuItem[];
+
+//<editor-fold desc="menus">
+class BaseItem {
+  constructor() {
+
+    this.label         = '';
+    this.submenu       = [];
+    this.submenu.items = [];
+    this.type          = '';
+    this.role          = null;
+    this.accelerator   = null;
+    this.icon          = null;
+    this.sublabel      = '';
+    this.enabled       = true;
+    this.visible       = true;
+    this.checked       = false;
+    // this.commandId = 66
+    this.click         = null;
+    // this.menu = [Circular]
+    this.items         = []
+  }
+
 }
 
-class MenuItem {
+//1.
+class MenuItem extends BaseItem {
+  constructor() {
+    super();
+    this.submenu       = new MenuArray();
+    this.submenu.items = new MenuArray();
+  }
 
-  // Docs: http://electron.atom.io/docs/api/menu-item
-  //
-  // constructor(options: MenuItemConstructorOptions);
-  // checked: boolean;
-  // click: Function;
-  // enabled: boolean;
-  // label: string;
-  // visible: boolean;
 }
+
+//2.
+class MenuArray extends mix(BaseItem, Array) {
+  constructor() {
+    super();
+
+  }
+
+  set_submenu() {
+    this.submenu       = new MenuArray()
+    this.submenu.items = this.submenu
+  }
+}
+
+class Menu extends MenuArray {
+
+  static initMenuProp() {
+    Menu.label         = '';
+    Menu.submenu       = new MenuArray();
+    Menu.submenu.items = new MenuArray();
+    Menu.type          = '';
+    Menu.role          = null;
+    Menu.accelerator   = null;
+    Menu.icon          = null;
+    Menu.sublabel      = '';
+    Menu.enabled       = true;
+    Menu.visible       = true;
+    Menu.checked       = false;
+    // Menu.commandId = 66
+    Menu.click         = null;
+    // Menu.menu = [Circular]
+    Menu.items         = []
+  }
+
+  static getApplicationMenu() {
+    return Menu
+  }
+
+  static setApplicationMenu(menu = null) {
+    return null
+  }
+
+
+  static buildFromTemplate(menu) {
+    //init menu ; menu = [{label:'editsubmenu:[{...},{...}]},
+    //                   {label:'file,...}]
+
+    const items = new MenuArray();
+    items.set_submenu()
+
+    menu.forEach((dict, index) => {
+      // menu_dict = {label:'edit,submenu:[{...},{...}]}
+      const new_menu = new MenuItem();
+      const old_menu = dict;
+      //<editor-fold desc="单个菜单的键 循环">
+      for (let key of Object.keys(old_menu)) {
+        if (key !== 'submenu') {
+          new_menu[key] = old_menu[key];
+        }
+        else {
+          // prop === 'submenu' ;res = {...,submenu:[..],}
+
+          let res = Menu.buildFromTemplate(old_menu[key])
+
+          new_menu[key] = res;
+
+          // Object.defineProperty(new_menu[key], 'items', {value: res.items, writable: true})
+
+          // res.submenu.items = res.items:[]
+        }
+      }
+      //</editor-fold>
+      new_menu['submenu'].items =  new_menu['submenu']
+      new_menu.items = new_menu['submenu']
+      items.push(new_menu)
+
+    })
+
+    return items
+    // Menu.items = items
+  }
+
+}
+
+Menu.initMenuProp()
+//</editor-fold>
 
 export {
   ipcMain,
+  ipcRenderer,
   Menu,
   BrowserWindow,
   shell,
   app,
   dialog,
   remote,
-  ipcRenderer,
+  screen,
+
+  clipboard,
+  systemPreferences,
+  crashReporter,
 
 }
+

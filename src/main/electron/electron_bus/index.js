@@ -7,11 +7,12 @@ class EventEmitter {
 }
 
 function on(Event_str, callback) {
-  // console.log("on_callback", callback)
+  console.log("-->on_callback:", Event_str)
   e_bus.$on(Event_str, callback)
 }
 
 function send(Event_str, agrs) {
+  console.log("==>send:", Event_str,agrs)
   e_bus.$emit(Event_str, ...[{sender: new EventEmitter()},
                              agrs,
   ])

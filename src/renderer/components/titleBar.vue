@@ -1,144 +1,298 @@
 <template>
-  <div class="title-bar" :class="[{ 'active': active }, theme]">
+  <div class="title-bar" :class="[{ 'active': active }, { 'tabs-visible': showTabBar }, { 'frameless': titleBarStyle === 'custom' }, { 'isOsx': platform === 'darwin' }]">
     <Menus ></Menus>
     <div class="title">
-      <span v-for="(path, index) of paths" :key="index">
-        {{ path }}
-        <svg class="icon" aria-hidden="true">
-          <use xlink:href="#icon-arrow-right"></use>
-        </svg>
+      <span v-if="!filename">Mark Text</span>
+      <span v-else>
+        <span
+          v-for="(path, index) of paths"
+          :key="index"
+        >
+          {{ path }}
+          <svg class="icon" aria-hidden="true">
+            <use xlink:href="#icon-arrow-right"></use>
+          </svg>
+        </span>
+        <span
+          class="filename"
+          :class="{'isOsx': platform === 'darwin'}"
+          @click="rename"
+        >
+          {{ filename }}
+        </span>
+        <span class="save-dot" :class="{'show': !isSaved}"></span>
       </span>
-      <span :class="[{ 'title-no-drag': platform === 'win32' }]">{{ filename }}</span>
-
     </div>
-    <!-- <editor-fold desc=click menu 2019/05/29 18:26 > ↓↓↓ -->
-    <div :class=" 'left-toolbar'">
-
-      <!--      <div class="windows-titlebar-menu title-no-drag" @click.stop="handleMenuClick">-->
-      <!--        &#9776;-->
-      <!--      </div>-->
+    <div :class="titleBarStyle === 'custom' ? 'left-toolbar title-no-drag' : 'right-toolbar'">
       <div
-        class="word-count"
-        :class="[{ 'title-no-drag': platform === 'win32' }]"
-        @click.stop="handleWordClick"
-      >{{ `${HASH[show]} ${wordCount[show]}` }}
+        v-if="titleBarStyle === 'custom'"
+        class="frameless-titlebar-menu title-no-drag"
+        @click.stop="handleMenuClick"
+      >&#9776;</div>
+      <el-tooltip
+        v-if="wordCount"
+        class="item"
+        :content="`${wordCount[show]} ${HASH[show].full + (wordCount[show] > 1 ? 's' : '')}`"
+        placement="bottom-end"
+      >
+        <div slot="content">
+          <div class="title-item">
+            <span class="front">Words:</span><span class="text">{{wordCount['word']}}</span>
+          </div>
+          <div class="title-item">
+            <span class="front">Characters:</span><span class="text">{{wordCount['character']}}</span>
+          </div>
+          <div class="title-item">
+            <span class="front">Paragraph:</span><span class="text">{{wordCount['paragraph']}}</span>
+          </div>
+        </div>
+        <div
+          v-if="wordCount"
+          class="word-count"
+          :class="[{ 'title-no-drag': platform !== 'darwin' }]"
+          @click.stop="handleWordClick"
+        >{{ `${HASH[show].short} ${wordCount[show]}` }}</div>
+      </el-tooltip>
+    </div>
+    <div
+      v-if="titleBarStyle === 'custom' && !isFullScreen"
+      class="right-toolbar"
+      :class="[{ 'title-no-drag': titleBarStyle === 'custom' }]"
+    >
+      <div class="frameless-titlebar-button frameless-titlebar-close" @click.stop="handleCloseClick">
+        <div>
+          <svg width="10" height="10">
+            <path :d="windowIconClose" />
+          </svg>
+        </div>
+      </div>
+      <div class="frameless-titlebar-button frameless-titlebar-toggle" @click.stop="handleMaximizeClick">
+        <div>
+          <svg width="10" height="10">
+            <path v-show="!isMaximized" :d="windowIconMaximize" />
+            <path v-show="isMaximized" :d="windowIconRestore" />
+          </svg>
+        </div>
+      </div>
+      <div class="frameless-titlebar-button frameless-titlebar-minimize" @click.stop="handleMinimizeClick">
+        <div>
+          <svg width="10" height="10">
+            <path :d="windowIconMinimize" />
+          </svg>
+        </div>
       </div>
     </div>
-    <!-- </editor-fold> ↑↑↑ -->
-    <!-- <editor-fold desc=cumtomer button 2019/05/29 18:01 > ↓↓↓ -->
-    <div v-if="platform === 'win32'" class="right-toolbar" :class="[{ 'title-no-drag': platform === 'win32' }]">
-      <div class="windows-titlebar-close" @click.stop="handleCloseClick">&times;</div>
-      <div class="windows-titlebar-toggle" @click.stop="handleMaximizeClick">&#9633;</div>
-      <div class="windows-titlebar-minimize" @click.stop="handleMinimizeClick">&minus;</div>
-    </div>
-    <!-- </editor-fold> ↑↑↑ -->
   </div>
-
 </template>
 
 <script>
-  import {remote} from '../../main/electron'
+  import { remote } from '@/../main/electron'
   import Menus from "./menus"
+  import { mapState } from 'vuex'
+  import { minimizePath, restorePath, maximizePath, closePath } from '../assets/window-controls.js'
+  import { PATH_SEPARATOR } from '../config'
 
   export default {
-    data() {
+    components:{Menus},
+    data () {
       this.HASH = {
-        'word'     : 'W',
-        'character': 'C',
-        'paragraph': 'P',
-        'all'      : 'A',
+        'word': {
+          short: 'W',
+          full: 'word'
+        },
+        'character': {
+          short: 'C',
+          full: 'character'
+        },
+        'paragraph': {
+          short: 'P',
+          full: 'paragraph'
+        },
+        'all': {
+          short: 'A',
+          full: '(with space)character'
+        }
       }
+      this.windowIconMinimize = minimizePath
+      this.windowIconRestore = restorePath
+      this.windowIconMaximize = maximizePath
+      this.windowIconClose = closePath
       return {
-        show: 'word',
+        // isFullScreen: remote.getCurrentWindow().isFullScreen(),
+        // isMaximized: remote.getCurrentWindow().isMaximized() || remote.getCurrentWindow().isFullScreen(),
+        isFullScreen: true,
+        isMaximized: true,
+        show: 'word'
       }
     },
-    props     : {
-      filename : String,
-      pathname : String,
-      active   : Boolean,
+    created () {
+      // const win = remote.getCurrentWindow()
+      // ;['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen'].forEach(type => {
+      //   win.on(type, this.handleWindowStateChanged)
+      // })
+    },
+    props: {
+      project: Object,
+      filename: String,
+      pathname: String,
+      active: Boolean,
       wordCount: Object,
-      theme    : String,
-      platform : String,
+      platform: String,
+      isSaved: Boolean
     },
-    components: {Menus},
-    computed  : {
-      paths() {
-        const pathnameToken = this.pathname.split('/').filter(i => i)
+    computed: {
+      ...mapState({
+        'titleBarStyle': state => state.preferences.titleBarStyle,
+        'showTabBar': state => state.layout.showTabBar
+      }),
+      paths () {
+        if (!this.pathname) return []
+        const pathnameToken = this.pathname.split(PATH_SEPARATOR).filter(i => i)
         return pathnameToken.slice(0, pathnameToken.length - 1).slice(-3)
-      },
+      }
     },
-    methods   : {
-      handleWordClick() {
+    watch: {
+      filename: function (value) {
+        // Set filename when hover on dock
+        const title = this.project && this.project.name ? `${value} - ${this.project.name}` : value
+        document.querySelector('title').textContent = title
+      }
+    },
+    methods: {
+      handleWordClick () {
         const ITEMS = ['word', 'paragraph', 'character', 'all']
-        const len   = ITEMS.length
-        let index   = ITEMS.indexOf(this.show)
+        const len = ITEMS.length
+        let index = ITEMS.indexOf(this.show)
         index += 1
         if (index >= len) index = 0
         this.show = ITEMS[index]
       },
-      handleCloseClick() {
-        // remote.getCurrentWindow().close()
+
+      handleCloseClick () {
+        remote.getCurrentWindow().close()
       },
-      handleMaximizeClick() {
-        // const win = remote.getCurrentWindow()
-        // if (win.isMaximized()) {
-        //   win.unmaximize()
-        // } else {
-        //   win.maximize()
-        // }
+
+      handleMaximizeClick () {
+        const win = remote.getCurrentWindow()
+        if (win.isFullScreen()) {
+          win.setFullScreen(false)
+        } else if (win.isMaximized()) {
+          win.unmaximize()
+        } else {
+          win.maximize()
+        }
       },
-      handleMinimizeClick() {
-        // remote.getCurrentWindow().minimize()
+
+      handleMinimizeClick () {
+        remote.getCurrentWindow().minimize()
       },
-      handleMenuClick() {
-        alert("menu")
-        // const win = remote.getCurrentWindow()
-        // remote.Menu.getApplicationMenu().popup({window: win, x: win.getPosition()[0] + 23, y: win.getPosition()[1] + 20})
+
+      handleMenuClick () {
+        let offsetX = 23
+        const elems = document.getElementsByClassName('side-bar')
+        if (elems) {
+          offsetX += elems[0].clientWidth
+        }
+
+        const win = remote.getCurrentWindow()
+        remote
+          .Menu
+          .getApplicationMenu()
+          .popup({ window: win, x: offsetX, y: 20 })
       },
+
+      handleWindowStateChanged () {
+        this.isFullScreen = remote.getCurrentWindow().isFullScreen()
+        this.isMaximized = remote.getCurrentWindow().isMaximized() || this.isFullScreen
+      },
+
+      rename () {
+        if (this.platform === 'darwin') {
+          this.$store.dispatch('RESPONSE_FOR_RENAME')
+        }
+      }
     },
+    beforeDestroy () {
+      const win = remote.getCurrentWindow()
+      ;['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen'].forEach(type => {
+        win.removeListener(type, this.handleWindowStateChanged)
+      })
+    }
   }
 </script>
 
 <style scoped>
   .title-bar {
-    background: rgb(252, 252, 252);
     -webkit-app-region: drag;
     user-select: none;
+    background: var(--editorBgColor);
     width: 100%;
-    height: 22px;
+    height: var(--titleBarHeight);
     box-sizing: border-box;
-    color: #F2F6FC;
-    position: fixed;
+    color: var(--editorColor50);
+    position: absolute;
     top: 0;
-    left: 0;
     right: 0;
-    z-index: 1;
+    z-index: 2;
     transition: color .4s ease-in-out;
     cursor: default;
   }
-
   .active {
-    color: #909399;
+    color: var(--editorColor);
   }
-
   img {
     height: 90%;
     margin-top: 1px;
     vertical-align: top;
   }
-
   .title {
     padding: 0 100px;
     height: 100%;
-    line-height: 22px;
-    font-size: 12px;
-    font-weight: 500;
+    line-height: var(--titleBarHeight);
+    font-size: 14px;
     text-align: center;
     transition: all .25s ease-in-out;
+    & .filename {
+      transition: all .25s ease-in-out;
+    }
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      height: 1px;
+      width: 100%;
+      z-index: 1;
+      -webkit-app-region: no-drag;
+    }
+  }
+  div.title > span {
+    /* Workaround for GH#339 */
+    display: block;
+    direction: rtl;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
   }
 
+  .title-bar .title .filename.isOsx:hover {
+    color: var(--themeColor);
+  }
+
+  .active .save-dot {
+    margin-left: 3px;
+    width: 7px;
+    height: 7px;
+    display: inline-block;
+    border-radius: 50%;
+    background: var(--themeColor);
+    opacity: .7;
+    visibility: hidden;
+  }
+  .active .save-dot.show {
+    visibility: visible;
+  }
   .title:hover {
-    color: #303133;
+    color: var(sideBarTitleColor);
   }
 
   .right-toolbar {
@@ -149,9 +303,9 @@
     right: 0;
     width: 100px;
     display: flex;
+    align-items: center;
     flex-direction: row-reverse;
   }
-
   .left-toolbar {
     padding: 0 10px;
     height: 100%;
@@ -162,86 +316,69 @@
     display: flex;
     flex-direction: row;
   }
-
   .word-count {
     cursor: pointer;
-    font-size: 12px;
-    color: #F2F6FC;
-    height: 15px;
-    line-height: 15px;
-    margin-top: 4px;
-    padding: 1px 5px;
-    border-radius: 1px;
+    font-size: 14px;
+    color: var(--editorColor30);
+    height: 20px;
+    text-align: center;
+    line-height: 24px;
+    padding: 0px 5px;
+    box-sizing: border-box;
+    border-radius: 4px;
     transition: all .25s ease-in-out;
   }
 
-  .active .word-count {
-    color: #DCDFE6;
-  }
-
   .word-count:hover {
-    background: #F2F6FC;
-    color: #606266;
+    background: var(--sideBarBgColor);
+    color: var(--sideBarTitleColor);
   }
-
   .title-no-drag {
     -webkit-app-region: no-drag;
   }
-
-  /* windows window controls */
-  .windows-titlebar-close {
-    width: 25px;
-    height: 25px;
-    text-align: center;
-    font-size: 30px;
-    color: #606266;
-    line-height: 24px;
+  /* frameless window controls */
+  .frameless-titlebar-button {
+    position: relative;
+    display: block;
+    width: var(--titleBarHeight);
+    height: var(--titleBarHeight);
   }
-
-  .windows-titlebar-toggle {
-    width: 25px;
-    height: 25px;
-    text-align: center;
-    font-size: 29px;
-    color: #606266;
-    line-height: 16px;
+  .frameless-titlebar-button > div {
+    position: absolute;
+    display: inline-flex;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
   }
-
-  .windows-titlebar-minimize {
-    width: 25px;
-    height: 25px;
-    text-align: center;
-    font-size: 30px;
-    color: #606266;
-    line-height: 24px;
+  .frameless-titlebar-menu {
+    color: var(--sideBarColor);
   }
-
-  .windows-titlebar-menu {
-    color: #606266;
-  }
-
-  .windows-titlebar-close:hover {
+  .frameless-titlebar-close:hover {
     background-color: rgb(228, 79, 79);
-    color: white;
   }
-
-  .windows-titlebar-minimize:hover,
-  .windows-titlebar-toggle:hover {
+  .frameless-titlebar-minimize:hover,
+  .frameless-titlebar-toggle:hover {
     background-color: rgba(0, 0, 0, 0.1);
   }
-
-  /* css for dark theme */
-  .dark {
-    background: rgb(43, 43, 43);
-    color: #909399;
+  .frameless-titlebar-button svg {
+    fill: #000000
   }
-
-  .dark .title:hover {
-    color: #F2F6FC;
-  }
-
-  .dark .word-count:hover {
-    background: rgb(71, 72, 66);
-    color: #C0C4CC;
+  .frameless-titlebar-close:hover svg {
+    fill: #ffffff
   }
 </style>
+
+<style>
+.title-item {
+  height: 28px;
+  line-height: 28px;
+  & .front {
+    color: var(--editorColor50);
+  }
+  & .text {
+    margin-left: 10px;
+    color: var(--editorColor30);
+  }
+}
+</style>
+

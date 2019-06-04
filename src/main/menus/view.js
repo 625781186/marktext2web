@@ -1,94 +1,130 @@
-import {VIEW_MENU_ITEM} from '../config'
 import * as actions from '../actions/view'
+import { isOsx } from '../config'
+import keybindings from '../shortcutHandler'
 
 let viewMenu = {
-  label  : 'View',
-  submenu: [
-    {
-      label      : 'Toggle Full Screen',
-      accelerator: (function () {
-        if (process.platform === 'darwin') {
-          return 'Ctrl+Command+F'
-        } else {
-          return 'F11'
-        }
-      })(),
-      click      : function (item, focusedWindow) {
-        if (focusedWindow) {
-          focusedWindow.setFullScreen(!focusedWindow.isFullScreen())
-        }
-      },
-    },
-    {
-      type: 'separator',
-    },
-    {
-      label      : 'Source Code Mode',
-      accelerator: 'Shift+CmdOrCtrl+S',
-      type       : 'checkbox',
-      checked    : VIEW_MENU_ITEM['Source Code Mode'],
-      click(item, browserWindow) {
-        actions.view(browserWindow, item, 'sourceCode')
-      },
-    },
-    {
-      label      : 'Typewriter Mode',
-      accelerator: 'Shift+CmdOrCtrl+T',
-      type       : 'checkbox',
-      checked    : VIEW_MENU_ITEM['Typewriter Mode'],
-      click(item, browserWindow) {
-        actions.view(browserWindow, item, 'typewriter')
-      },
-    },
-    {
-      label      : 'Focus Mode',
-      accelerator: 'Shift+CmdOrCtrl+F',
-      type       : 'checkbox',
-      checked    : VIEW_MENU_ITEM['Focus Mode'],
-      click(item, browserWindow) {
-        actions.view(browserWindow, item, 'focus')
-      },
-    },
-    {
-      type: 'separator',
-    }],
+  label: 'View',
+  submenu: [{
+    label: 'Toggle Full Screen',
+    accelerator: keybindings.getAccelerator('viewToggleFullScreen'),
+    click (item, focusedWindow) {
+      if (focusedWindow) {
+        focusedWindow.setFullScreen(!focusedWindow.isFullScreen())
+      }
+    }
+  }, {
+    type: 'separator'
+  }, {
+    label: 'Font...',
+    accelerator: keybindings.getAccelerator('viewChangeFont'),
+    click (item, browserWindow) {
+      actions.changeFont(browserWindow)
+    }
+  }, {
+    type: 'separator'
+  }, {
+    id: 'sourceCodeModeMenuItem',
+    label: 'Source Code Mode',
+    accelerator: keybindings.getAccelerator('viewSourceCodeMode'),
+    type: 'checkbox',
+    checked: false,
+    click (item, browserWindow, event) {
+      // if we call this function, the checked state is not set
+      if (!event) {
+        item.checked = !item.checked
+      }
+      actions.typeMode(browserWindow, 'sourceCode', item)
+    }
+  }, {
+    id: 'typewriterModeMenuItem',
+    label: 'Typewriter Mode',
+    accelerator: keybindings.getAccelerator('viewTypewriterMode'),
+    type: 'checkbox',
+    checked: false,
+    click (item, browserWindow, event) {
+      // if we call this function, the checked state is not set
+      if (!event) {
+        item.checked = !item.checked
+      }
+      actions.typeMode(browserWindow, 'typewriter', item)
+    }
+  }, {
+    id: 'focusModeMenuItem',
+    label: 'Focus Mode',
+    accelerator: keybindings.getAccelerator('viewFocusMode'),
+    type: 'checkbox',
+    checked: false,
+    click (item, browserWindow, event) {
+      // if we call this function, the checked state is not set
+      if (!event) {
+        item.checked = !item.checked
+      }
+      actions.typeMode(browserWindow, 'focus', item)
+    }
+  }, {
+    type: 'separator'
+  }, {
+    label: 'Toggle Side Bar',
+    id: 'sideBarMenuItem',
+    accelerator: keybindings.getAccelerator('viewToggleSideBar'),
+    type: 'checkbox',
+    checked: false,
+    click (item, browserWindow, event) {
+      // if we call this function, the checked state is not set
+      if (!event) {
+        item.checked = !item.checked
+      }
+
+      actions.layout(item, browserWindow, 'showSideBar')
+    }
+  }, {
+    label: 'Toggle Tab Bar',
+    id: 'tabBarMenuItem',
+    accelerator: keybindings.getAccelerator('viewToggleTabBar'),
+    type: 'checkbox',
+    checked: false,
+    click (item, browserWindow, event) {
+      // if we call this function, the checked state is not set
+      if (!event) {
+        item.checked = !item.checked
+      }
+
+      actions.layout(item, browserWindow, 'showTabBar')
+    }
+  }, {
+    type: 'separator'
+  }]
 }
 
-if (process.env.NODE_ENV !== 'production' || process.env.NODE_ENV === 'development') {
+if (global.MARKTEXT_DEBUG) {
   // add devtool when development
   viewMenu.submenu.push({
-    label      : 'Toggle Developer Tools',
-    accelerator: (function () {
-      if (process.platform === 'darwin') {
-        return 'Alt+Command+I'
-      } else {
-        return 'Ctrl+Shift+I'
-      }
-    })(),
-    click      : function (item, focusedWindow) {
+    label: 'Toggle Developer Tools',
+    accelerator: keybindings.getAccelerator('viewDevToggleDeveloperTools'),
+    click (item, focusedWindow) {
       if (focusedWindow) {
         focusedWindow.webContents.toggleDevTools()
       }
-    },
+    }
   })
   // add reload when development
   viewMenu.submenu.push({
-    label      : 'Reload',
-    accelerator: 'CmdOrCtrl+R',
-    click      : function (item, focusedWindow) {
+    label: 'Reload',
+    accelerator: keybindings.getAccelerator('viewDevReload'),
+    click (item, focusedWindow) {
       if (focusedWindow) {
         focusedWindow.reload()
       }
-    },
+    }
   })
 }
 
-if (process.platform === 'darwin') {
+if (isOsx) {
   viewMenu.submenu.push({
-    type: 'separator',
+    type: 'separator'
   }, {
     label: 'Bring All to Front',
-    role : 'front',
+    role: 'front'
   })
 }
 

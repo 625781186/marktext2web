@@ -3,7 +3,35 @@
   --control-text-color: #777;
 }
 
-@include-when-export url(http://fonts.googleapis.com/css?family=Open+Sans:400italic,700italic,700,400&subset=latin,latin-ext);
+@include-when-export url(https://fonts.googleapis.com/css?family=Open+Sans:400italic,700italic,700,400&subset=latin,latin-ext);
+
+@font-face {
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: normal;
+    src: local('Open Sans Regular'),url('./github/400.woff') format('woff')
+}
+
+@font-face {
+    font-family: 'Open Sans';
+    font-style: italic;
+    font-weight: normal;
+    src: local('Open Sans Italic'),url('./github/400i.woff') format('woff')
+}
+
+@font-face {
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: bold;
+    src: local('Open Sans Bold'),url('./github/700.woff') format('woff')
+}
+
+@font-face {
+    font-family: 'Open Sans';
+    font-style: italic;
+    font-weight: bold;
+    src: local('Open Sans Bold Italic'),url('./github/700i.woff') format('woff')
+}
 
 html, body {
   font-size: 16px;
@@ -19,9 +47,14 @@ body {
 ::-webkit-scrollbar {
   background: rgb(252, 252, 252);
 }
-
+::-webkit-scrollbar:vertical {
+  width: 12px;
+}
 ::-webkit-scrollbar-thumb {
   background: #EBEEF5;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #E1E4EA;
 }
 
 #ag-editor-id {
@@ -43,14 +76,12 @@ body {
 }
 
 .ag-gray {
-  color: #E4E7ED;
+  color: #C0C4CC;
   text-decoration: none;
-  letter-spacing: .15rem;
 }
 
 .v-modal {
-  background: #fff;
-  opacity: .8;
+  background: rgba(230, 230, 230, .9);
 }
 
 body>*:first-child {
@@ -173,7 +204,10 @@ hr {
   border: 0 none;
   overflow: hidden;
   box-sizing: content-box;
-  border-bottom: 1px solid #ddd;
+}
+
+p:not(.ag-active)[data-role="hr"]::before {
+  background: gainsboro;
 }
 
 body>h2:first-child {
@@ -220,6 +254,11 @@ h6 p {
 
 li p.first {
   display: inline-block;
+}
+
+li.ag-tight-list-item > p {
+  padding: 0;
+  margin: 0;
 }
 
 ul,
@@ -305,12 +344,13 @@ tt {
 
 /* custom add */
 code {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  background-color: rgba(27,31,35,0.05);
+  border-radius: 3px;
   border: none;
-  padding: 2px 4px;
-  font-size: 90%;
-  color: #c7254e;
-  background-color: #f9f2f4;
-  border-radius: 4px;
+  color: #24292e;
   font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
@@ -327,13 +367,34 @@ code {
   }
 }
 
-#ag-editor-id pre.ag-code-block {
-  padding: .4rem 1rem;
+.ag-hide.ag-math > .ag-math-render {
+  color: #333333;
+}
+
+#ag-editor-id pre.ag-code-block,
+#ag-editor-id pre.ag-html-block {
   font-size: 90%;
   line-height: 1.6;
-  background-color: #f6f8fa;
+  background: #f6f8fa;
   border: 0;
   border-radius: 3px;
   color: #777777;
+}
+
+#ag-editor-id pre.ag-html-block {
+  background: transparent;
+  padding: 0 .5rem;
   margin-top: 0;
+}
+
+#ag-editor-id pre.ag-active.ag-html-block {
+  background: #f6f8fa;
+}
+
+p:not(.ag-active)[data-role="hr"]::before {
+  background: gainsboro;
+}
+
+.fg-color-dark {
+  color: #303133;
 }

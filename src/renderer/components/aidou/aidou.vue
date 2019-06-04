@@ -1,5 +1,5 @@
 <template>
-  <div class="aidou" :class="theme">
+  <div class="aidou">
     <el-dialog 
       :visible.sync="showAiDou"
       :show-close="false"
@@ -101,9 +101,10 @@
       }
     },
     computed: {
-      ...mapState([
-        'aiLoading', 'aiList', 'theme'
-      ]),
+      ...mapState({
+        'aiList': state => state.aidou.aiList,
+        'aiLoading': state => state.aidou.aiLoading
+      }),
       emojis () {
         return this.aiList.map(e => {
           e.collected = this.collection.findIndex(c => c.link === e.link) > -1
@@ -115,7 +116,7 @@
       getCollection () {
         const data = this.collection
         const type = 'collect'
-        this.$store.dispatch('AI_LIST', {data, type})
+        this.$store.dispatch('AI_LIST', { data, type })
         this.showCollection = true
         this.query = ''
       },
@@ -153,13 +154,14 @@
       handleInput (event) {
         let historyIndex = this.historyIndex
         switch (event.key) {
-          case 'Enter':
+          case 'Enter': {
             const query = this.historyIndex !== -1 ? this.history[this.historyIndex] : this.query
             if (!this.aiLoading) {
               this.search(query)
             }
             break
-          case 'ArrowUp':
+          }
+          case 'ArrowUp': {
             historyIndex = historyIndex - 1
             if (historyIndex === -1 || historyIndex === -2) {
               this.historyIndex = this.history.length - 1
@@ -167,7 +169,8 @@
               this.historyIndex = historyIndex
             }
             break
-          case 'ArrowDown':
+          }
+          case 'ArrowDown': {
             historyIndex = historyIndex + 1
             if (historyIndex >= this.history.length) {
               this.historyIndex = 0
@@ -175,6 +178,7 @@
               this.historyIndex = historyIndex
             }
             break
+          }
         }
       },
       handleShowAiDou () {
@@ -232,6 +236,7 @@
     margin-bottom: 20px;
   }
   .search-wrapper {
+    margin: 0 auto;
     margin-top: 8px;
     z-index: 10000;
     position: absolute;
@@ -239,21 +244,23 @@
     left: 50%;
     transform: translateX(-50%);
     width: 410px;
-    margin: 0 auto;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
     height: auto;
     padding: 5px;
-    background: #fff;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, .1);
-    border: 1px solid #eeeeee;
+    color: var(--editorColor);
+    background: var(--floatBgColor);
+    box-shadow: 0 3px 8px 3px var(--floatHoverColor);
+    border: 1px solid var(--floatBorderColor);
     border-radius: 3px;
   }
   .input-wrapper {
     display: flex;
     width: 100%;
+    border: 1px solid var(--sideBarTextColor);
+    border-radius: 14px;
   }
   .search {
     width: 100%;
@@ -263,18 +270,19 @@
     font-size: 14px;
     padding: 0 8px;
     margin: 0 10px;
-    color: #606266;
+    color: var(--editorColor);
+    background: transparent;
   }
   .search-wrapper svg {
     cursor: pointer;
     margin: 0 5px;
     width: 30px;
     height: 30px;
-    color: #606266;
+    color: var(--iconColor);
     transition: all .3s ease-in-out;
   }
   .search-wrapper svg:hover {
-    color: orange;
+    color: var(--themeColor);
   }
   ul.history {
     display: flex;
@@ -305,12 +313,12 @@
   }
   ul.history .clear-history span {
     font-size: 12px;
-    color: #C0C4CC;
+    color: var(--themeColor);
     text-align: center;
     cursor: pointer;
   }
   ul.history li.active {
-    background: #EBEEF5;
+    background: var(--floatHoverColor);
   }
   ul.history:hover li {
     background: transparent;
@@ -319,7 +327,7 @@
     display: block;
   }
   ul.history li:hover {
-    background: #EBEEF5;
+    background: var(--floatHoverColor);
   }
   .image-container {
     height: 410px;
@@ -351,7 +359,7 @@
     display: none;
   }
   .image-container .img-wrapper > svg.active {
-    color: orange;
+    color: var(--themeColor);
   }
   .image-container .img-wrapper:hover > svg {
     display: block;
@@ -371,16 +379,4 @@
   .fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
     opacity: 0;
   }
-  /* style for dark theme */
-  .dark .search-wrapper {
-    background: rgb(75, 75, 75);
-    border-color: rgb(75, 75, 75);
-  }
-  .dark ul.history li.active {
-    background: rgb(39, 39, 39);
-  }
-  .dark ul.history li:hover {
-    background: rgb(39, 39, 39);
-  }
-
 </style>

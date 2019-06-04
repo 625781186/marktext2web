@@ -23,11 +23,12 @@ module.exports = {
       : config.dev.assetsPublicPath
   },
   resolve: {
-    extensions: ['.js', '.vue', '.json'],
+    extensions: ['.js', '.vue', '.json', '.css', '.node'],
     alias: {
-      'vue$': 'vue/dist/vue.esm.js',
       '@': resolve('src/renderer'),
-    }
+      'vue$': 'vue/dist/vue.esm.js',
+      'muya': path.join(__dirname, '../src/muya'),
+    },
   },
   module: {
     rules: [
@@ -39,7 +40,8 @@ module.exports = {
       {
         test: /\.js$/,
         loader: 'babel-loader',
-        include: [resolve('src'), resolve('test'), resolve('node_modules/webpack-dev-server/client')]
+        include: [resolve('src'), resolve('test'),
+                  resolve('node_modules/webpack-dev-server/client')]
       },
       {
         test: /\.html$/,

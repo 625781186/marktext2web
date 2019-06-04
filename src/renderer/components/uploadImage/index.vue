@@ -1,6 +1,6 @@
 <template>
-  <div class="aidou" :class="theme">
-    <el-dialog 
+  <div class="aidou">
+    <el-dialog
       :visible.sync="showUpload"
       :show-close="false"
       :modal="true"
@@ -27,7 +27,6 @@
 </template>
 
 <script>
-  import { mapState } from 'vuex'
   import bus from '../../bus'
 
   const msg = 'jpg | png | gif | jpeg only, max size 5M'
@@ -40,13 +39,7 @@
         error: false
       }
     },
-    computed: {
-      ...mapState([
-        'theme'
-      ])
-    },
     created () {
-      console.log("bus3",this.$id(bus))
       this.$nextTick(() => {
         bus.$on('upload-image', this.handleUpload)
       })
@@ -68,15 +61,17 @@
         this.error = false
       },
       handleUpload () {
-        this.showUpload = true
+        if (!this.showUpload) {
+          this.showUpload = true
+          bus.$emit('editor-blur')
+        }
       },
       handleResponse (res) {
-        console.log(res)
         if (res.code === 'success') {
           // handle success
-          const { url } = res.data
+          const { url, delete: deletionUrl } = res.data
           this.showUpload = false
-          bus.$emit('insert-image', url)
+          bus.$emit('image-uploaded', url, deletionUrl)
         } else if (res.code === 'error') {
           // handle error
           this.message = res.msg
@@ -91,11 +86,21 @@
 <style>
   .el-upload__tip {
     text-align: center;
+    color: var(--sideBarColor);
   }
   .el-upload__tip.error {
     color: #E6A23C;
   }
-  .dark .el-upload-dragger {
-    background: rgb(39, 39, 39);
+  .el-upload-dragger {
+    background: var(--itemBgColor);
+    & .el-upload__text {
+      color: var(--sideBarColor);
+      & em {
+        color: var(--themeColor);
+      }
+    }
+  }
+  .el-upload-dragger:hover {
+    border-color: var(--themeColor);
   }
 </style>

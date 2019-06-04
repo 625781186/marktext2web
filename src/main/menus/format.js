@@ -1,48 +1,64 @@
 import * as actions from '../actions/format'
+import keybindings from '../shortcutHandler'
 
 export default {
+  id: 'formatMenuItem',
   label: 'Format',
   submenu: [{
+    id: 'strongMenuItem',
     label: 'Strong',
     type: 'checkbox',
-    accelerator: 'Shift+CmdOrCtrl+B',
+    accelerator: keybindings.getAccelerator('formatStrong'),
     click (menuItem, browserWindow) {
       actions.format(browserWindow, 'strong')
     }
   }, {
+    id: 'emphasisMenuItem',
     label: 'Emphasis',
     type: 'checkbox',
-    accelerator: 'CmdOrCtrl+E',
+    accelerator: keybindings.getAccelerator('formatEmphasis'),
     click (menuItem, browserWindow) {
       actions.format(browserWindow, 'em')
     }
   }, {
+    id: 'inlineCodeMenuItem',
     label: 'Inline Code',
     type: 'checkbox',
-    accelerator: 'CmdOrCtrl+`',
+    accelerator: keybindings.getAccelerator('formatInlineCode'),
     click (menuItem, browserWindow) {
       actions.format(browserWindow, 'inline_code')
     }
   }, {
+    id: 'inlineMathMenuItem',
+    label: 'Inline Math',
+    type: 'checkbox',
+    accelerator: keybindings.getAccelerator('formatInlineMath'),
+    click (menuItem, browserWindow) {
+      actions.format(browserWindow, 'inline_math')
+    }
+  }, {
     type: 'separator'
   }, {
+    id: 'strikeMenuItem',
     label: 'Strike',
     type: 'checkbox',
-    accelerator: 'CmdOrCtrl+D',
+    accelerator: keybindings.getAccelerator('formatStrike'),
     click (menuItem, browserWindow) {
       actions.format(browserWindow, 'del')
     }
   }, {
+    id: 'hyperlinkMenuItem',
     label: 'Hyperlink',
     type: 'checkbox',
-    accelerator: 'CmdOrCtrl+L',
+    accelerator: keybindings.getAccelerator('formatHyperlink'),
     click (menuItem, browserWindow) {
       actions.format(browserWindow, 'link')
     }
   }, {
+    id: 'imageMenuItem',
     label: 'Image',
     type: 'checkbox',
-    accelerator: 'Shift+CmdOrCtrl+I',
+    accelerator: keybindings.getAccelerator('formatImage'),
     click (menuItem, browserWindow) {
       actions.format(browserWindow, 'image')
     }
@@ -50,7 +66,7 @@ export default {
     type: 'separator'
   }, {
     label: 'Clear Format',
-    accelerator: 'Shift+CmdOrCtrl+R',
+    accelerator: keybindings.getAccelerator('formatClearFormat'),
     click (menuItem, browserWindow) {
       actions.format(browserWindow, 'clear')
     }
