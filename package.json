@@ -109,7 +109,7 @@
     "katex": "^0.10.0-alpha",
     "keyboard-layout": "^2.0.16",
     "markdown-toc": "^1.2.0",
-    "mermaid": "^8.0.0",
+    "mermaid": "^8.2.3",
     "module": "^1.2.5",
     "mousetrap": "^1.6.1",
     "node-notifier": "^5.4.0",
