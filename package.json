@@ -86,7 +86,7 @@
   "dependencies": {
     "@hfelix/electron-localshortcut": "^3.1.1",
     "aws-sdk": "^2.466.0",
-    "axios": "^0.18.0",
+    "axios": "^0.21.1",
     "babili-webpack-plugin": "^0.1.2",
     "cheerio": "^1.0.0-rc.2",
     "chokidar": "^2.0.3",
