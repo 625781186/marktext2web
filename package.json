@@ -90,7 +90,7 @@
     "babili-webpack-plugin": "^0.1.2",
     "cheerio": "^1.0.0-rc.2",
     "chokidar": "^2.0.3",
-    "codemirror": "^5.36.0",
+    "codemirror": "^5.58.2",
     "command-exists": "^1.2.8",
     "css-tree": "^1.0.0-alpha.28",
     "dayjs": "^1.8.12",
